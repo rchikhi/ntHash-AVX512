@@ -114,7 +114,7 @@ void hashSeqb(const string & seq, unsigned int length) {
 void hashSeqr(const string & seq, unsigned int length) {
 	uint64_t fhVal, rhVal, hVal;
 	hVal = NTC64(seq.c_str(), opt::kmerLen, fhVal, rhVal);
-    if (debug) std::cout << "first nthash " << hVal << std::endl;
+    if (debug) std::cout << std::hex << "first nthash " << hVal << std::endl;
 	if (hVal)opt::nz++;
 	for (size_t i = 1; i < length - opt::kmerLen + 1; i++) {
 		hVal = NTC64(seq[i - 1], seq[i - 1 + opt::kmerLen], opt::kmerLen, fhVal, rhVal);
@@ -124,13 +124,13 @@ void hashSeqr(const string & seq, unsigned int length) {
             //std::cout << "next char " << seq[i - 1 + opt::kmerLen] << " interm hash " << hVal << std::endl;
         }
 	}
-    if (debug) std::cout << "final nthash " << hVal << std::endl;
+    if (debug) std::cout << std::hex << "final nthash " << hVal << std::endl;
 }
 
 void hashSeqr32(const string & seq, unsigned int length) {
 	uint32_t fhVal, rhVal, hVal;
 	hVal = NTC32(seq.c_str(), opt::kmerLen, fhVal, rhVal);
-    std::cout << "first nthash32 " << hVal << std::endl;
+    std::cout << std::hex << "first nthash32 " << hVal << std::endl;
 	if (hVal)opt::nz++;
 	for (size_t i = 1; i < length - opt::kmerLen + 1; i++) {
 		hVal = NTC32(seq[i - 1], seq[i - 1 + opt::kmerLen], opt::kmerLen, fhVal, rhVal);
@@ -140,7 +140,7 @@ void hashSeqr32(const string & seq, unsigned int length) {
            // std::cout << "next char " << seq[i - 1 + opt::kmerLen] << " interm hash " << hVal << std::endl;
         }
 	}
-    if (debug) std::cout << "final nthash32 " << hVal << std::endl;
+    if (debug) std::cout << std::hex << "final nthash32 " << hVal << std::endl;
 }
 
 void hashSeqAvx2(const string & seq, unsigned int length) {
@@ -156,7 +156,7 @@ void hashSeqAvx2(const string & seq, unsigned int length) {
 	_hVal = _mm256_NTC_epu64(kmerSeq, opt::kmerLen, _k, _fhVal, _rhVal);
 
    uint64_t hval0 = _mm256_extract_epi64(_hVal, 0);
-   if (debug) std::cout << "first hash AVX2 " <<  hval0 << std::endl;
+   if (debug) std::cout << std::hex<< "first hash AVX2 " <<  hval0 << std::endl;
 
 	__m256i _isZero = _mm256_cmpeq_epi64(
 		_hVal,
@@ -187,7 +187,7 @@ void hashSeqAvx2(const string & seq, unsigned int length) {
             
         //hval0 = _mm256_extract_epi64(_hVal, 0);
         //if (i > sentinel-10)
-        //std::cout << "interm hash AVX2 " <<  hval0 << std::endl;
+        //std::cout << std::hex << "interm hash AVX2 " <<  hval0 << std::endl;
     }
 
 	opt::nz =
@@ -204,7 +204,7 @@ void hashSeqAvx2(const string & seq, unsigned int length) {
        hval0 = _mm256_extract_epi64(_hVal, 2);
    else if ((length - opt::kmerLen) % 4 == 3)
        hval0 = _mm256_extract_epi64(_hVal, 3);
-   if (debug) std::cout << "final hash AVX2 " <<  hval0 << std::endl;
+   if (debug) std::cout << std::hex << "final hash AVX2 " <<  hval0 << std::endl;
 }
 
 void hashSeqAvx2x32(const string & seq, unsigned int length) {
@@ -221,7 +221,7 @@ void hashSeqAvx2x32(const string & seq, unsigned int length) {
         
     uint32_t hval0;
     hval0 = _mm256_extract_epi32(_hVal, 0);
-    if (debug) std::cout << "first hash AVX2x32 " <<  hval0 << std::endl;
+    if (debug) std::cout << std::hex << "first hash AVX2x32 " <<  hval0 << std::endl;
 
 	__m256i _isZero = _mm256_cmpeq_epi32(
 		_hVal,
@@ -277,7 +277,7 @@ void hashSeqAvx2x32(const string & seq, unsigned int length) {
         hval0 = _mm256_extract_epi32(_hVal, 6);
     else if ((length - opt::kmerLen) % 8 == 7)
         hval0 = _mm256_extract_epi32(_hVal, 7);
-    if (debug) std::cout << "final hash AVX2x32 " <<  hval0 << std::endl;
+    if (debug) std::cout << std::hex << "final hash AVX2x32 " <<  hval0 << std::endl;
 }
 
 void hashSeqAvx512(const string & seq, unsigned int length) {
@@ -294,7 +294,7 @@ void hashSeqAvx512(const string & seq, unsigned int length) {
 
 	__m256i lo = _mm512_extracti64x4_epi64(_hVal, 0);
     uint64_t hval0 = _mm256_extract_epi64(lo, 0);
-    if (debug) std::cout << "first hash AVX512 " <<  hval0  << std::endl;
+    if (debug) std::cout << std::hex << "first hash AVX512 " <<  hval0  << std::endl;
 
     
     __mmask8 _isZero = _mm512_cmpeq_epi64_mask(
@@ -343,7 +343,7 @@ void hashSeqAvx512(const string & seq, unsigned int length) {
        hval0 = _mm256_extract_epi64(lo, 2);
    else if ((length - opt::kmerLen) % 4 == 3)
        hval0 = _mm256_extract_epi64(lo, 3);
-   if (debug) std::cout << "final hash AVX512 " <<  hval0  << std::endl;
+   if (debug) std::cout << std::hex << "final hash AVX512 " <<  hval0  << std::endl;
 }
 
 void hashSeqAvx512x32(const string & seq, unsigned int length) {
@@ -362,7 +362,7 @@ void hashSeqAvx512x32(const string & seq, unsigned int length) {
     __m256i lo;
     lo = _mm512_extracti64x4_epi64(_hVal, 0);
     hval0 = _mm256_extract_epi32(lo, 0);
-    if (debug) std::cout << "first hash AVX512x32 " <<  hval0 << std::endl;
+    if (debug) std::cout << std::hex << "first hash AVX512x32 " <<  hval0 << std::endl;
 
 	__mmask16 _isZero = _mm512_cmpeq_epi32_mask(
 		_hVal,
@@ -418,7 +418,7 @@ void hashSeqAvx512x32(const string & seq, unsigned int length) {
         hval0 = _mm256_extract_epi32(lo, 6);
     else if ((length - opt::kmerLen) % 8 == 7)
         hval0 = _mm256_extract_epi32(lo, 7);
-   if (debug) std::cout << "final hash AVX512x32 " <<  hval0 << std::endl;
+   if (debug) std::cout << std::hex << "final hash AVX512x32 " <<  hval0 << std::endl;
 
 }
 

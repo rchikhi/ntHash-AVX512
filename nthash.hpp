@@ -190,8 +190,12 @@ inline uint32_t NTF32(const char * kmerSeq, const unsigned k) {
     uint32_t hVal=0;
     for(unsigned i=0; i<k; i++) {
         hVal = rol1x32(hVal);
-        hVal = swapbits017(hVal);
+        //hVal = swapbits017(hVal); // This is the ntHash2 novelty. 
+        //I'm not keeping it in this 32 bits version. So beware of 
+        //periodicity with k>32. This is ntHash1-32bits
         hVal ^= seedTab32[(unsigned char)kmerSeq[i]];
+
+        //std::cout << std::hex << i << " first nthash32 " << hVal << std::endl;
     }
     return hVal;
 }
@@ -212,8 +216,9 @@ inline uint32_t NTR32(const char * kmerSeq, const unsigned k) {
     uint32_t hVal=0;
     for(unsigned i=0; i<k; i++) {
         hVal = rol1x32(hVal);
-        hVal = swapbits017(hVal);
+        //hVal = swapbits017(hVal);
         hVal ^= seedTab32[(unsigned char)kmerSeq[k-1-i]&cpOff];
+        //std::cout << std::hex << i << " first nthash32 rev " << hVal << std::endl;
     }
     return hVal;
 }
@@ -245,24 +250,26 @@ inline uint64_t NTR64(const uint64_t rhVal, const unsigned k, const unsigned cha
 // forward-strand ntHash for sliding k-mers (32 bits version)
 inline uint32_t NTF32(const uint32_t fhVal, const unsigned k, const unsigned char charOut, const unsigned char charIn) {
     uint32_t hVal = rol1x32(fhVal);
-    hVal = swapbits017(hVal);
-    hVal ^= seedTab[charIn];
-    uint32_t lBits = seedTab32[charOut] >> 17;
-    uint32_t rBits = seedTab32[charOut] & 0x1FFFF;
-    uint32_t sOut = (rol15(lBits,k) << 17) | (rol17(rBits,k));
+    //hVal = swapbits017(hVal); //ntHash1-32bits variant here (see the othe NTF32())
+    hVal ^= seedTab32[charIn];
+    //uint32_t lBits = seedTab32[charOut] >> 17;
+    //uint32_t rBits = seedTab32[charOut] & 0x1FFFF;
+    //uint32_t sOut = (rol15(lBits,k) << 17) | (rol17(rBits,k));
+    uint32_t sOut = (seedTab32[charOut] << k) | (seedTab32[charOut] >> (32-k)) ;
     hVal ^= sOut;
     return hVal;
 }
 
 // reverse-complement ntHash for sliding k-mers (32 bits version)
 inline uint32_t NTR32(const uint32_t rhVal, const unsigned k, const unsigned char charOut, const unsigned char charIn) {
-    uint32_t lBits = seedTab32[charIn&cpOff] >> 17;
-    uint32_t rBits = seedTab32[charIn&cpOff] & 0x1FFFF;
-    uint32_t sIn = (rol15(lBits,k) << 17) | (rol17(rBits,k));
+    //uint32_t lBits = seedTab32[charIn&cpOff] >> 17;
+    //uint32_t rBits = seedTab32[charIn&cpOff] & 0x1FFFF;
+    //uint32_t sIn = (rol15(lBits,k) << 17) | (rol17(rBits,k));
+    uint32_t sIn = (seedTab32[charIn&cpOff] << (k-1)) | (seedTab32[charIn&cpOff] >> (32-k-1));
     uint32_t hVal = rhVal ^ sIn;
-    hVal ^= seedTab32[charOut&cpOff];
+    hVal ^= (seedTab32[charOut&cpOff] >> 1) | (seedTab32[charOut&cpOff] << (32-1));
     hVal = ror1x32(hVal);
-    hVal = swapbits1631(hVal);
+    //hVal = swapbits1631(hVal); ntHash1-32bits variant here
     return hVal;
 }
 

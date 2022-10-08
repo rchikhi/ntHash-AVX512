@@ -30,15 +30,19 @@ __m256i _mm256_shift_left_si256(__m256i a) {
 }
 
 // convert kmers 8 -> 3 bit representation, N character is mapped to 4
+// 
 inline __m128i _mm_CKX_epu8(const __m128i _kmerSeq) {
+    // _mm_set1_epi8(a: i8) -> __m128i: Broadcasts 8-bit integer a to all elements.
 	const __m128i _mask = _mm_set1_epi8(0x0f);
 
+    // _mm_set_epi8([16 args]) -> __m128i: Sets packed 8-bit integers with the supplied values.
 	const __m128i _table = _mm_set_epi8(
 		4, 4, 4, 4, 4, 4, 4, 4, 2, 4, 4, 3, 1, 4, 0, 4);
 
     // _mm_shuffle_epi8(a: __m128i, b: __m128i) -> __m128i: Shuffles bytes from a according to the content of b.
 	__m128i _kmer = _mm_shuffle_epi8(
 		_table,
+        // _mm_and_si128(a: __m128i, b: __m128i) -> __m128i: Computes the bitwise AND of 128 bits (representing integer data) in a and b.
 		_mm_and_si128(
 			_kmerSeq,
 			_mask));
@@ -139,9 +143,13 @@ __m256i _mm256_rori33_epu64(const __m256i _v) {
 
 // load forward-strand kmers
 inline __m256i _mm256_LKF_epu64(const char * kmerSeq) {
+    // _mm256_i32gather_epi64(slice: *const i64, offsets: __m128i, const SCALE: i32) -> __m256i
+    // Returns values from slice at offsets determined by offsets * scale, where scale should be 1, 2, 4 or 8.
 	__m256i _kmer = _mm256_i32gather_epi64(
 		(const long long*)seedTab,
+        // _mm_cvtepu8_epi32(a: __m128i) -> __m128i: Zeroes extend packed unsigned 8-bit integers in a to packed 32-bit integers
 		_mm_cvtepu8_epi32(
+            //_mm_cvtsi32_si128(a: i32) -> __m128i: Returns a vector whose lowest element is a and all higher elements are 0.
             _mm_cvtsi32_si128(
 				*(uint32_t const*) kmerSeq)),
 		8);
@@ -340,6 +348,8 @@ inline __m256i _mm256_NTF_epu64(const __m256i _fhVal, const __m256i _k, const ch
 			0x08));
 
 	// var-shift the hash
+    // _mm256_permute4x64_epi64(a: __m256i, const IMM8: i32) -> __m256i:
+    // Permutes 64-bit integers from a using control mask imm8.
 	__m256i _hVal = _mm256_permute4x64_epi64(
 		_fhVal,
 		0xff);
@@ -519,9 +529,12 @@ inline __m256i _mm256_rorv31_epu32(const __m256i _v, const __m256i _s) {
 	const __m256i _32 = _mm256_set1_epi32(32);
 
 	return _mm256_or_si256(
+            //  _mm256_srlv_epi32(a: __m256i, count: __m256i) -> __m256i: 
+            //  Shifts packed 32-bit integers in a right by the amount specified by the corresponding element in count while shifting in zeros,
 		_mm256_srlv_epi32(
 			_v,
 			_s),
+        //  _mm256_srli_epi32(a: __m256i, const IMM8: i32) -> __m256i: Shifts packed 32-bit integers in a right by IMM8 while shifting in zeros
 		_mm256_srli_epi32(
 			_mm256_sllv_epi32(_v,
 				_mm256_sub_epi32(
@@ -534,6 +547,7 @@ inline __m256i _mm256_rorv31_epu32(const __m256i _v, const __m256i _s) {
 template <int imm>
 __m256i _mm256_rori31_epu32(const __m256i _v) {
 	return _mm256_or_si256(
+        // _mm256_srli_epi32(a: __m256i, const IMM8: i32) -> __m256i: Shifts packed 32-bit integers in a right by IMM8 while shifting in zeros
 		_mm256_srli_epi32(
 			_v,
 			imm),
@@ -548,6 +562,7 @@ __m256i _mm256_rori31_epu32(const __m256i _v) {
 inline __m256i _mm256_LKX_epu32(const char * kmerSeq) {
 	__m256i _kmer = _mm256_cvtepu8_epi32(
 		_mm_CKX_epu8(
+            //_mm_loadl_epi64(mem_addr: *const __m128i) -> __m128i: Loads 64-bit integer from memory into first element of returned vector.
             _mm_loadl_epi64(
 				(__m128i const*)kmerSeq)));
 
@@ -606,6 +621,43 @@ inline __m256i _mm256_NTF_epu32(const char * kmerSeq, const unsigned k) {
 	return _hVal31;
 }
 
+// forward-strand hash value of the base kmer, i.e. fhval(kmer_0)
+// ntHash1 version
+inline __m256i _mm256_NTF_epu32_ntHash1(const char * kmerSeq, const unsigned k) {
+	__m256i _hVal32 = _mm256_setzero_si256();
+	const __m256i _mask32 = _mm256_set1_epi64x(0xFFFFFFFFl);
+    //uint64_t hval0;
+
+	for (unsigned i = 0; i < k; i++)
+	{
+        //_hVal31 = _mm256_rori31_epu32<30>(_hVal31);
+        // for that 32 bits version, I do like the 32 bits scalar implementation in nthash.hpp: 
+        // just a roll 1 left (it's ntHash1 with a k>32 periodicity, even worse than k>64)
+        _hVal32 = _mm256_or_si256(
+                _mm256_slli_epi64(
+                    _hVal32,
+                    1),
+                _mm256_srli_epi64(
+                    _hVal32,
+                    31));
+
+		__m256i _kmer32 = _mm256_LKF_epu32(kmerSeq + i);
+        
+		_hVal32 = _mm256_xor_si256(
+			_hVal32,
+			_kmer32);
+
+		_hVal32 = _mm256_and_si256(
+			_hVal32,
+			_mask32);
+
+        //hval0 = _mm256_extract_epi64(_hVal32, 0);
+        //std::cout << std::hex << i << " first hash AVX2x32 " <<  hval0 << std::endl;
+	}
+
+	return _hVal32;
+}
+
 // reverse-strand hash value of the base kmer, i.e. rhval(kmer_0)
 inline __m256i _mm256_NTR_epu32(const char * kmerSeq, const unsigned k, const __m256i _k) {
 	const __m256i _zero = _mm256_setzero_si256();
@@ -630,6 +682,49 @@ inline __m256i _mm256_NTR_epu32(const char * kmerSeq, const unsigned k, const __
 	return _hVal31;
 }
 
+// reverse-strand hash value of the base kmer, i.e. rhval(kmer_0)
+// ntHash1 version
+inline __m256i _mm256_NTR_epu32_nthash1(const char * kmerSeq, const unsigned k, const __m256i _k) {
+    (void)_k;
+	const __m256i _zero = _mm256_setzero_si256();
+	const __m256i _mask32 = _mm256_set1_epi64x(0xFFFFFFFFl);
+
+	__m256i _hVal32 = _zero;
+
+	for (unsigned i = 0; i < k; i++)
+	{
+        // same: do ntHash1 like nthash.hpp for this 32bits version
+        _hVal32 = _mm256_or_si256(
+                _mm256_slli_epi64(
+                    _hVal32,
+                    1),
+                _mm256_srli_epi64(
+                    _hVal32,
+                    31));
+
+		__m256i _kmer32 = _mm256_LKR_epu32(kmerSeq + k - 1 - i);
+
+		//_kmer31 = _mm256_rorv31_epu32(
+		//	_kmer31,
+		//	_k);
+
+		_hVal32 = _mm256_xor_si256(
+			_hVal32,
+			_kmer32);
+
+		//_hVal31 = _mm256_rori31_epu32<1>(_hVal31);
+
+		_hVal32 = _mm256_and_si256(
+			_hVal32,
+			_mask32);
+
+        //uint64_t hval0 = _mm256_extract_epi64(_hVal32, 0);
+        //std::cout << std::hex << "first hash rev AVX2x32 " <<  hval0 << std::endl;
+	}
+
+	return _hVal32;
+}
+
 // canonical ntHash
 inline __m256i _mm256_NTC_epu32(const char * kmerSeq, const unsigned k, const __m256i _k, __m256i& _fhVal, __m256i& _rhVal) {
 	_fhVal = _mm256_NTF_epu32(kmerSeq, k);
@@ -639,6 +734,7 @@ inline __m256i _mm256_NTC_epu32(const char * kmerSeq, const unsigned k, const __
 	__m256i _hVal = _mm256_blendv_epi8(
 		_fhVal,
 		_rhVal,
+        // _mm256_cmpgt_epi32(a: __m256i, b: __m256i) -> __m256i: Compares packed 32-bit integers in a and b for greater-than.
 		_mm256_cmpgt_epi32(
 			_fhVal,
 			_rhVal));
@@ -652,6 +748,7 @@ inline __m256i _mm256_NTC_epu32(const char * kmerSeq, const unsigned k, const __
 
 	return _mm256_NTC_epu32(kmerSeq, k, _k, _fhVal, _rhVal);
 }
+
 
 // forward-strand ntHash for sliding k-mers
 inline __m256i _mm256_NTF_epu32(const __m256i _fhVal, const __m256i _k, const char * kmerOut, const char * kmerIn) {
@@ -669,6 +766,74 @@ inline __m256i _mm256_NTF_epu32(const __m256i _fhVal, const __m256i _k, const ch
 	__m256i _kmer31 = _mm256_xor_si256(
 		_in31,
 		_out31);
+
+	// scan-shift kmers	
+	_kmer31 = _mm256_xor_si256(
+		_kmer31,
+		_mm256_shift_left_si256<4>(
+			_mm256_rori31_epu32<30>(
+				_kmer31)));
+
+	_kmer31 = _mm256_xor_si256(
+		_kmer31,
+		_mm256_shift_left_si256<8>(
+			_mm256_rori31_epu32<29>(
+				_kmer31)));
+
+	_kmer31 = _mm256_xor_si256(
+		_kmer31,
+		_mm256_permute2x128_si256(
+			_mm256_rori31_epu32<27>(
+				_kmer31),
+			_zero,
+			0x08));
+
+	// var-shift the hash
+	__m256i _hVal31 = _mm256_permutevar8x32_epi32(
+		_fhVal,
+		_mm256_set1_epi32(7));
+
+	const __m256i _shift31 = _mm256_set_epi32(
+		23, 24, 25, 26, 27, 28, 29, 30);
+
+	_hVal31 = _mm256_rorv31_epu32(
+		_hVal31,
+		_shift31);
+
+	// merge everything together
+	_hVal31 = _mm256_xor_si256(
+		_hVal31,
+		_kmer31);
+
+	return _hVal31;
+}
+
+// forward-strand ntHash for sliding k-mers
+// this is a work in progress to transform this function to the nthash1 flavor. I didn't finish it. So this function is incorrect for now.
+inline __m256i _mm256_NTF_epu32_nthash1_wip(const __m256i _fhVal, const __m256i _k, const char * kmerOut, const char * kmerIn) {
+	const __m256i _zero = _mm256_setzero_si256();
+	const __m256i _32 = _mm256_set1_epi32(32);
+
+	// construct input kmers
+	__m256i _in32 = _mm256_LKF_epu32(kmerIn);
+
+	__m256i _out32 = _mm256_LKF_epu32(kmerOut);
+
+    _out32 = _mm256_or_si256(
+            //  _mm256_srlv_epi32(a: __m256i, count: __m256i) -> __m256i: 
+            //  Shifts packed 32-bit integers in a right by the amount specified by the corresponding element in count while shifting in zeros,
+            _mm256_sllv_epi32(
+                _out32,
+                _k),
+            //  _mm256_srli_epi32(a: __m256i, const IMM8: i32) -> __m256i: Shifts packed 32-bit integers in a right by IMM8 while shifting in zeros
+            _mm256_sllv_epi32(_out32,
+                _mm256_sub_epi32(
+                    _32,
+                    _k)));
+    
+	__m256i _kmer31 = _mm256_xor_si256(
+		_in32,
+		_out32);
 
 	// scan-shift kmers	
 	_kmer31 = _mm256_xor_si256(
