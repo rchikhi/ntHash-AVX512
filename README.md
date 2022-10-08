@@ -1,3 +1,7 @@
+# ntHash1 AVX512
+
+This is a bugfixed version with expanded tests of ntHash1 AVX2 and AVX512 pots. Also added 32-bits scalar ntHash.
+
 ntHash 
 =
 ntHash is a recursive hash function for hashing all possible k-mers in a DNA/RNA sequence. 
