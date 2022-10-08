@@ -1559,7 +1559,7 @@ inline __m512i _mm512_NTR_epu32(const __m512i _rhVal, const __m512i _k, const ch
 }
 
 // canonical ntHash for sliding k-mers
-inline __m512i _mm512_NTC_epu32(const char * kmerOut, const char * kmerIn, const unsigned k, const __m512i _k, __m512i& _fhVal, __m512i& _rhVal) {
+inline __m512i _mm512_NTC_epu32(const char * kmerOut, const char * kmerIn, const __m512i _k, __m512i& _fhVal, __m512i& _rhVal) {
 	_fhVal = _mm512_NTF_epu32(_fhVal, _k, kmerOut, kmerIn);
 	_rhVal = _mm512_NTR_epu32(_rhVal, _k, kmerOut, kmerIn);
 

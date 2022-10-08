@@ -62,14 +62,68 @@ static const uint64_t seedTab[256] = {
     seedN, seedN, seedN, seedN, seedN, seedN, seedN, seedN  // 248..255
 };
 
+// 32-bit random seeds corresponding to bases and their complements
+static const uint32_t seed32A = 0x95c60474;
+static const uint32_t seed32C = 0x62a02b4c;
+static const uint32_t seed32G = 0x82572324;
+static const uint32_t seed32T = 0x4be24456;
+static const uint32_t seed32N = 0x00000000;
+
+static const uint32_t seedTab32[256] = {
+    seed32N, seed32T, seed32N, seed32G, seed32A, seed32N, seed32N, seed32C, // 0..7
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 8..15
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 16..23
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 24..31
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 32..39
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 40..47
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 48..55
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 56..63
+    seed32N, seed32A, seed32N, seed32C, seed32N, seed32N, seed32N, seed32G, // 64..71
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 72..79
+    seed32N, seed32N, seed32N, seed32N, seed32T, seed32N, seed32N, seed32N, // 80..87
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 88..95
+    seed32N, seed32A, seed32N, seed32C, seed32N, seed32N, seed32N, seed32G, // 96..103
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 104..111
+    seed32N, seed32N, seed32N, seed32N, seed32T, seed32N, seed32N, seed32N, // 112..119
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 120..127
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 128..135
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 136..143
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 144..151
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 152..159
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 160..167
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 168..175
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 176..183
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 184..191
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 192..199
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 200..207
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 208..215
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 216..223
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 224..231
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 232..239
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, // 240..247
+    seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N, seed32N  // 248..255
+};
+
+
+
 // rotate "v" to the left 1 position
 inline uint64_t rol1(const uint64_t v) {
     return (v << 1) | (v >> 63);
 }
 
+// rotate "v" to the left 1 position (32 bits version)
+inline uint32_t rol1x32(const uint32_t v) {
+    return (v << 1) | (v >> 31);
+}
+
 // rotate "v" to the right by 1 position
 inline uint64_t ror1(const uint64_t v) {
     return (v >> 1) | (v << 63);
+}
+
+// rotate "v" to the right by 1 position (32bits version)
+inline uint32_t ror1x32(const uint32_t v) {
+    return (v >> 1) | (v << 31);
 }
 
 // rotate 31-left bits of "v" to the left by "s" positions
@@ -78,10 +132,22 @@ inline uint64_t rol31(const uint64_t v, unsigned s) {
     return ((v << s) | (v >> (31 - s))) & 0x7FFFFFFF;
 }
 
+// rotate 15-left bits of "v" to the left by "s" positions (32 bits version)
+inline uint32_t rol15(const uint32_t v, unsigned s) {
+    s%=15;
+    return ((v << s) | (v >> (15 - s))) & 0x7FFF;
+}
+
 // rotate 33-right bits of "v" to the left by "s" positions
 inline uint64_t rol33(const uint64_t v, unsigned s) {
     s%=33;
     return ((v << s) | (v >> (33 - s))) & 0x1FFFFFFFF;
+}
+
+// rotate 17-right bits of "v" to the left by "s" positions (32 bits version)
+inline uint32_t rol17(const uint32_t v, unsigned s) {
+    s%=17;
+    return ((v << s) | (v >> (17 - s))) & 0x1FFFF;
 }
 
 // swap bit 0 with bit 33 in "v"
@@ -90,10 +156,22 @@ inline uint64_t swapbits033(const uint64_t v) {
     return v ^ (x | (x << 33));
 }
 
+// swap bit 0 with bit 17 in "v" (32 bits version)
+inline uint32_t swapbits017(const uint32_t v) {
+    uint32_t x = (v ^ (v >> 17)) & 1;
+    return v ^ (x | (x << 17));
+}
+
 // swap bit 32 with bit 63 in "v"
 inline uint64_t swapbits3263(const uint64_t v) {
     uint64_t x = ((v >> 32) ^ (v >> 63)) & 1;
     return v ^ ((x << 32) | (x << 63));
+}
+
+// swap bit 16 with bit 31 in "v" (32 bits version)
+inline uint32_t swapbits1631(const uint32_t v) {
+    uint64_t x = ((v >> 16) ^ (v >> 31)) & 1;
+    return v ^ ((x << 16) | (x << 31));
 }
 
 // forward-strand hash value of the base kmer, i.e. fhval(kmer_0)
@@ -107,6 +185,17 @@ inline uint64_t NTF64(const char * kmerSeq, const unsigned k) {
     return hVal;
 }
 
+// forward-strand hash value of the base kmer, i.e. fhval(kmer_0) (32 bits version)
+inline uint32_t NTF32(const char * kmerSeq, const unsigned k) {
+    uint32_t hVal=0;
+    for(unsigned i=0; i<k; i++) {
+        hVal = rol1x32(hVal);
+        hVal = swapbits017(hVal);
+        hVal ^= seedTab32[(unsigned char)kmerSeq[i]];
+    }
+    return hVal;
+}
+
 // reverse-strand hash value of the base kmer, i.e. rhval(kmer_0)
 inline uint64_t NTR64(const char * kmerSeq, const unsigned k) {
     uint64_t hVal=0;
@@ -114,6 +203,17 @@ inline uint64_t NTR64(const char * kmerSeq, const unsigned k) {
         hVal = rol1(hVal);
         hVal = swapbits033(hVal);
         hVal ^= seedTab[(unsigned char)kmerSeq[k-1-i]&cpOff];
+    }
+    return hVal;
+}
+
+// reverse-strand hash value of the base kmer, i.e. rhval(kmer_0) (32 bits version)
+inline uint32_t NTR32(const char * kmerSeq, const unsigned k) {
+    uint32_t hVal=0;
+    for(unsigned i=0; i<k; i++) {
+        hVal = rol1x32(hVal);
+        hVal = swapbits017(hVal);
+        hVal ^= seedTab32[(unsigned char)kmerSeq[k-1-i]&cpOff];
     }
     return hVal;
 }
@@ -142,6 +242,30 @@ inline uint64_t NTR64(const uint64_t rhVal, const unsigned k, const unsigned cha
     return hVal;
 }
 
+// forward-strand ntHash for sliding k-mers (32 bits version)
+inline uint32_t NTF32(const uint32_t fhVal, const unsigned k, const unsigned char charOut, const unsigned char charIn) {
+    uint32_t hVal = rol1x32(fhVal);
+    hVal = swapbits017(hVal);
+    hVal ^= seedTab[charIn];
+    uint32_t lBits = seedTab32[charOut] >> 17;
+    uint32_t rBits = seedTab32[charOut] & 0x1FFFF;
+    uint32_t sOut = (rol15(lBits,k) << 17) | (rol17(rBits,k));
+    hVal ^= sOut;
+    return hVal;
+}
+
+// reverse-complement ntHash for sliding k-mers (32 bits version)
+inline uint32_t NTR32(const uint32_t rhVal, const unsigned k, const unsigned char charOut, const unsigned char charIn) {
+    uint32_t lBits = seedTab32[charIn&cpOff] >> 17;
+    uint32_t rBits = seedTab32[charIn&cpOff] & 0x1FFFF;
+    uint32_t sIn = (rol15(lBits,k) << 17) | (rol17(rBits,k));
+    uint32_t hVal = rhVal ^ sIn;
+    hVal ^= seedTab32[charOut&cpOff];
+    hVal = ror1x32(hVal);
+    hVal = swapbits1631(hVal);
+    return hVal;
+}
+
 // canonical ntBase
 inline uint64_t NTC64(const char * kmerSeq, const unsigned k) {
     uint64_t fhVal=0, rhVal=0;
@@ -157,10 +281,24 @@ inline uint64_t NTC64(const char * kmerSeq, const unsigned k, uint64_t& fhVal, u
     return (rhVal<fhVal)? rhVal : fhVal;
 }
 
+// canonical ntHash (32 bits version)
+inline uint32_t NTC32(const char * kmerSeq, const unsigned k, uint32_t& fhVal, uint32_t& rhVal) {
+    fhVal = NTF32(kmerSeq, k);
+    rhVal = NTR32(kmerSeq, k);
+    return (rhVal<fhVal)? rhVal : fhVal;
+}
+
 // canonical ntHash for sliding k-mers
 inline uint64_t NTC64(const unsigned char charOut, const unsigned char charIn, const unsigned k, uint64_t& fhVal, uint64_t& rhVal) {
     fhVal = NTF64(fhVal, k, charOut, charIn);
     rhVal = NTR64(rhVal, k, charOut, charIn);
+    return (rhVal<fhVal)? rhVal : fhVal;
+}
+
+// canonical ntHash for sliding k-mers (32 bits version)
+inline uint32_t NTC32(const unsigned char charOut, const unsigned char charIn, const unsigned k, uint32_t& fhVal, uint32_t& rhVal) {
+    fhVal = NTF32(fhVal, k, charOut, charIn);
+    rhVal = NTR32(rhVal, k, charOut, charIn);
     return (rhVal<fhVal)? rhVal : fhVal;
 }
 
