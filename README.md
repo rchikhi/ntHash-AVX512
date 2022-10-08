@@ -1,6 +1,6 @@
 # ntHash2 AVX512
 
-This is a bugfixed version with expanded tests of ntHash2 AVX2 and AVX512 ports. Also added 32-bits scalar ntHash.
+This is a bugfixed version of ntHash2 AVX2 and AVX512 ports with expanded tests. Also added 32-bits scalar ntHash.
 See https://github.com/bcgsc/ntHash/pull/9 for initial version.
 
 ntHash 
