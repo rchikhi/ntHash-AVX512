@@ -63,10 +63,10 @@ static const uint64_t seedTab[256] = {
 };
 
 // 32-bit random seeds corresponding to bases and their complements
-static const uint32_t seed32A = 0x95c60474;
-static const uint32_t seed32C = 0x62a02b4c;
-static const uint32_t seed32G = 0x82572324;
-static const uint32_t seed32T = 0x4be24456;
+static const uint32_t seed32A = (int)(seedA >> 33);
+static const uint32_t seed32C = (int)(seedC >> 33);
+static const uint32_t seed32G = (int)(seedG >> 33);
+static const uint32_t seed32T = (int)(seedT >> 33);
 static const uint32_t seed32N = 0x00000000;
 
 static const uint32_t seedTab32[256] = {
@@ -121,7 +121,7 @@ inline uint64_t ror1(const uint64_t v) {
     return (v >> 1) | (v << 63);
 }
 
-// rotate "v" to the right by 1 position (32bits version)
+// rotate "v" to the right by 1 position (32 bits version)
 inline uint32_t ror1x32(const uint32_t v) {
     return (v >> 1) | (v << 31);
 }
@@ -170,7 +170,7 @@ inline uint64_t swapbits3263(const uint64_t v) {
 
 // swap bit 16 with bit 31 in "v" (32 bits version)
 inline uint32_t swapbits1631(const uint32_t v) {
-    uint64_t x = ((v >> 16) ^ (v >> 31)) & 1;
+    uint32_t x = ((v >> 16) ^ (v >> 31)) & 1;
     return v ^ ((x << 16) | (x << 31));
 }
 

@@ -36,6 +36,7 @@ inline __m128i _mm_CKX_epu8(const __m128i _kmerSeq) {
 	const __m128i _table = _mm_set_epi8(
 		4, 4, 4, 4, 4, 4, 4, 4, 2, 4, 4, 3, 1, 4, 0, 4);
 
+    // _mm_shuffle_epi8(a: __m128i, b: __m128i) -> __m128i: Shuffles bytes from a according to the content of b.
 	__m128i _kmer = _mm_shuffle_epi8(
 		_table,
 		_mm_and_si128(
@@ -634,6 +635,7 @@ inline __m256i _mm256_NTC_epu32(const char * kmerSeq, const unsigned k, const __
 	_fhVal = _mm256_NTF_epu32(kmerSeq, k);
 	_rhVal = _mm256_NTR_epu32(kmerSeq, k, _k);
 
+    // _mm256_blendv_epi8(a: __m256i, b: __m256i, mask: __m256i) -> __m256i: Blends packed 8-bit integers from a and b using mask.
 	__m256i _hVal = _mm256_blendv_epi8(
 		_fhVal,
 		_rhVal,
@@ -875,7 +877,7 @@ __m512i _mm512_rori33_epu64(const __m512i _v) {
 			31));
 }
 
-
+/*
 // load kmers in 3 bit format
 inline __m512i _mm512_LKX_epu64(const char * kmerSeq) {
 	__m512i _kmer = _mm512_cvtepu8_epi64(
@@ -886,6 +888,18 @@ inline __m512i _mm512_LKX_epu64(const char * kmerSeq) {
 
 	return _kmer;
 }
+*/
+
+// previous non-crashing version
+inline __m512i _mm512_LKX_epu64(const char * kmerSeq) {
+    // _mm512_cvtepu8_epi64(a: __m128i) -> __m512i: Zero extend packed unsigned 8-bit integers in the low 8 bytes of a to packed 64-bit integers, and store the results in dst.
+	__m512i _kmer = _mm512_cvtepu8_epi64(
+			_mm_CKX_epu8(
+				_mm_loadl_epi64(
+					(__m128i const*)kmerSeq)));
+
+	return _kmer;
+}
 
 // load forward-strand kmers
 inline __m512i _mm512_LKF_epu64(const char * kmerSeq) {
@@ -893,6 +907,7 @@ inline __m512i _mm512_LKF_epu64(const char * kmerSeq) {
 		0, 0, 0, 0,
 		seedT, seedG, seedC, seedA);
 
+    //_mm512_permutexvar_epi32(idx: __m512i, a: __m512i) -> __m512i: Shuffle 32-bit integers in a across lanes using the corresponding index in idx, and store the results in dst.
 	__m512i _kmer = _mm512_permutexvar_epi64(
 		_mm512_LKX_epu64(
 			kmerSeq),
@@ -1426,7 +1441,7 @@ inline __m512i _mm512_NTC_epu32(const char * kmerSeq, const unsigned k, const __
 
 // forward-strand ntHash for sliding k-mers
 inline __m512i _mm512_NTF_epu32(const __m512i _fhVal, const __m512i _k, const char * kmerOut, const char * kmerIn) {
-	const __m512i _zero = _mm512_setzero_si512();
+	//const __m512i _zero = _mm512_setzero_si512();
 
 	// construct input kmers
 	__m512i _in31 = _mm512_LKF_epu32(kmerIn);
@@ -1492,7 +1507,7 @@ inline __m512i _mm512_NTF_epu32(const __m512i _fhVal, const __m512i _k, const ch
 
 // reverse-complement ntHash for sliding k-mers
 inline __m512i _mm512_NTR_epu32(const __m512i _rhVal, const __m512i _k, const char * kmerOut, const char * kmerIn) {
-	const __m512i _zero = _mm512_setzero_si512();
+	//const __m512i _zero = _mm512_setzero_si512();
 
 	// construct input kmers
 	__m512i _in31 = _mm512_LKR_epu32(kmerIn);
