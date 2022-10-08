@@ -58,7 +58,8 @@ static const struct option longopts[] = {
 	{ NULL, 0, NULL, 0 }
 };
 
-static const string itm[] = { "ntbase","nthash", "ntavx2", "ntavx232", "ntavx512", "ntavx532" };
+// modified by Rayan
+static const string itm[] = { "nthash", "ntavx2", "ntavx232", "ntavx512", "ntavx532" };
 
 void getFtype(const char *fName) {
 	std::ifstream in(fName);
@@ -110,11 +111,20 @@ void hashSeqb(const string & seq) {
 void hashSeqr(const string & seq) {
 	uint64_t fhVal, rhVal, hVal;
 	hVal = NTC64(seq.c_str(), opt::kmerLen, fhVal, rhVal);
+    std::cout << "first hash " << hVal << std::endl;
 	if (hVal)opt::nz++;
 	for (size_t i = 1; i < seq.length() - opt::kmerLen + 1; i++) {
 		hVal = NTC64(seq[i - 1], seq[i - 1 + opt::kmerLen], opt::kmerLen, fhVal, rhVal);
 		if (hVal)opt::nz++;
+        if (i > seq.length() - opt::kmerLen -10)
+        {
+            std::cout << "next char " << seq[i - 1 + opt::kmerLen] << " interm hash " << hVal << std::endl;
+
+        }
 	}
+    std::cout << "final hash " << hVal << std::endl;
+    std::cout << "forward hash " << fhVal << std::endl;
+    std::cout << "reverse hash " << rhVal << std::endl;
 }
 
 void hashSeqAvx2(const string & seq) {
@@ -129,6 +139,12 @@ void hashSeqAvx2(const string & seq) {
 
 	_hVal = _mm256_NTC_epu64(kmerSeq, opt::kmerLen, _k, _fhVal, _rhVal);
 
+   uint64_t hval0 = _mm256_extract_epi64(_hVal, 0);
+   uint64_t hval1 = _mm256_extract_epi64(_hVal, 1);
+   uint64_t hval2 = _mm256_extract_epi64(_hVal, 2);
+   uint64_t hval3 = _mm256_extract_epi64(_hVal, 3);
+   std::cout << "first hash AVX2 " <<  hval0 << " " <<  hval1 << " " <<  hval2 << " " <<  hval3 << " " << std::endl;
+
 	__m256i _isZero = _mm256_cmpeq_epi64(
 		_hVal,
 		_zero);
@@ -141,7 +157,7 @@ void hashSeqAvx2(const string & seq) {
 
 	kmerSeq += 3;
 
-	size_t sentinel = seq.length() - opt::kmerLen;
+	size_t sentinel = seq.length() - opt::kmerLen+1;
 
 	for (size_t i = 4; i < sentinel; i += 4, kmerSeq += 4) {
 		_hVal = _mm256_NTC_epu64(kmerSeq, kmerSeq + opt::kmerLen, _k, _fhVal, _rhVal);
@@ -155,13 +171,36 @@ void hashSeqAvx2(const string & seq) {
 			_mm256_xor_si256(
 				_isZero,
 				_isZero));
-	}
+            
+        hval0 = _mm256_extract_epi64(_hVal, 0);
+        hval1 = _mm256_extract_epi64(_hVal, 1);
+        hval2 = _mm256_extract_epi64(_hVal, 2);
+        hval3 = _mm256_extract_epi64(_hVal, 3);
+        if (i > sentinel-10)
+        std::cout << "interm hash AVX2 " <<  hval0 << " " <<  hval1 << " " <<  hval2 << " " <<  hval3 << " " << std::endl;
+    }
 
 	opt::nz =
 		_mm256_extract_epi64(_nz, 0) +
 		_mm256_extract_epi64(_nz, 1) +
 		_mm256_extract_epi64(_nz, 2) +
 		_mm256_extract_epi64(_nz, 3);
+
+   hval0 = _mm256_extract_epi64(_hVal, 0);
+   hval1 = _mm256_extract_epi64(_hVal, 1);
+   hval2 = _mm256_extract_epi64(_hVal, 2);
+   hval3 = _mm256_extract_epi64(_hVal, 3);
+   std::cout << "final hash AVX2 " <<  hval0 << " " <<  hval1 << " " <<  hval2 << " " <<  hval3 << " " << std::endl;
+   hval0 = _mm256_extract_epi64(_fhVal, 0);
+   hval1 = _mm256_extract_epi64(_fhVal, 1);
+   hval2 = _mm256_extract_epi64(_fhVal, 2);
+   hval3 = _mm256_extract_epi64(_fhVal, 3);
+   std::cout << "final hash AVX2 fh " <<  hval0 << " " <<  hval1 << " " <<  hval2 << " " <<  hval3 << " " << std::endl;
+   hval0 = _mm256_extract_epi64(_rhVal, 0);
+   hval1 = _mm256_extract_epi64(_rhVal, 1);
+   hval2 = _mm256_extract_epi64(_rhVal, 2);
+   hval3 = _mm256_extract_epi64(_rhVal, 3);
+   std::cout << "final hash AVX2 rh " <<  hval0 << " " <<  hval1 << " " <<  hval2 << " " <<  hval3 << " " << std::endl;
 }
 
 void hashSeqAvx2x32(const string & seq) {
@@ -260,6 +299,20 @@ void hashSeqAvx512(const string & seq) {
 	}
 
 	opt::nz = _mm512_reduce_add_epi64(_nz);
+
+/*   const __m256i lo = _mm512_extracti64x4_epi64(_hVal, 0);
+   const __m256i hi = _mm512_extracti64x4_epi64(_hVal, 1);
+   uint64_t hval0 = _mm256_extract_epi64(lo, 0);
+   uint64_t hval1 = _mm256_extract_epi64(lo, 1);
+   uint64_t hval2 = _mm256_extract_epi64(lo, 2);
+   uint64_t hval3 = _mm256_extract_epi64(lo, 3);
+   std::cout << "final hash AVX512 " <<  hval0 << " " <<  hval1 << " " <<  hval2 << " " <<  hval3 << " " << std::endl;
+   hval0 = _mm256_extract_epi64(hi, 0);
+   hval1 = _mm256_extract_epi64(hi, 1);
+   hval2 = _mm256_extract_epi64(hi, 2);
+   hval3 = _mm256_extract_epi64(hi, 3);
+   std::cout << "final hash AVX512 " <<  hval0 << " " <<  hval1 << " " <<  hval2 << " " <<  hval3 << " " << std::endl;
+*/
 }
 
 void hashSeqAvx512x32(const string & seq) {
@@ -307,17 +360,23 @@ void hashSeqAvx512x32(const string & seq) {
 	}
 
 	opt::nz = _mm512_reduce_add_epi32(_nz);
+
+     const __m256i lo = _mm512_extracti64x4_epi64(_hVal, 0);
+   uint64_t hval0 = _mm256_extract_epi64(lo, 0);
+   std::cout << "final hash AVX512x32 " <<  hval0 << std::endl;
+
 }
 
 void nthashRT(const char *readName) {
 	getFtype(readName);
 	cerr << "CPU time (sec) for hash algorithms for ";
 	cerr << "kmer=" << opt::kmerLen << "\n";
-	for (unsigned method = 0; method < 6; method++)
+    // Rayan: skips ntbase (method < 6) but also ntavx532 (method < 5) because it hangs for me
+	for (unsigned method = 0; method < 5; method++)
 		cerr << itm[method] << "\t";
 	cerr << "\n";
 
-	for (unsigned method = 0; method < 6; method++) {
+	for (unsigned method = 0; method < 5; method++) {
 		opt::nz = 0;
 		ifstream uFile(readName);
 		string line;

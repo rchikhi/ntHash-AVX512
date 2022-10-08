@@ -494,11 +494,12 @@ void nthashBF(const char *geneName, const char *readName) {
 }
 
 void nthashRT(const char *readName) {
+    // modified by Rayan to skip ntbase, go directly to nthash
     getFtype(readName);
     cerr << "CPU time (sec) for hash algorithms for ";
     cerr << "kmer="<<opt::kmerLen<< "\n";
     cerr << "nhash="<<opt::nhash<< "\n";
-    for(unsigned method=0; method<2; method++)
+    for(unsigned method=1; method<2; method++)
         cerr << itm[method] << "\t";
     cerr << "\n";
     if(opt::nhash>1) {
@@ -525,7 +526,7 @@ void nthashRT(const char *readName) {
         cerr << "\n";
     }
     else {
-        for(unsigned method=0; method<2; method++) {
+        for(unsigned method=1; method<2; method++) {
             opt::nz=0;
             ifstream uFile(readName);
             string line;
