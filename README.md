@@ -2,7 +2,7 @@
 
 This is a bugfixed version of ntHash2 AVX2 and AVX512 ports with expanded tests. Also added 32-bits scalar ntHash. 
 
-In terms of correctness, the 64-bit hash (default in ntHash 1 and 2) all agree together. The 32-bit AVX2/AVX512 ports agree together, as they implement some strange 31-bit ntHash2, but they do not agree with the 32-bits scalar version which implement ntHash1.
+In terms of correctness, the 64-bit hash version (which is default hash type in ntHash 1 and 2) of scalar, AVX2 and AVX512 all agree together. The 32-bit AVX2/AVX512 ports agree together, as they implement some strange 31-bit ntHash2, but they do not agree with the 32-bits scalar version which implement ntHash1.
 
 See https://github.com/bcgsc/ntHash/pull/9 for initial version.
 
