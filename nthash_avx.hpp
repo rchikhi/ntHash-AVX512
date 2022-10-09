@@ -808,7 +808,7 @@ inline __m256i _mm256_NTF_epu32(const __m256i _fhVal, const __m256i _k, const ch
 	return _hVal31;
 }
 
-// forward-strand ntHash for sliding k-mers
+// forward-strand ntHash for sliding k-mers (32 bits, ntHash1)
 // this is a work in progress to transform this function to the nthash1 flavor. I didn't finish it. So this function is incorrect for now.
 inline __m256i _mm256_NTF_epu32_nthash1_wip(const __m256i _fhVal, const __m256i _k, const char * kmerOut, const char * kmerIn) {
 	const __m256i _zero = _mm256_setzero_si256();

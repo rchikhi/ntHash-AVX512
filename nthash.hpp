@@ -185,12 +185,12 @@ inline uint64_t NTF64(const char * kmerSeq, const unsigned k) {
     return hVal;
 }
 
-// forward-strand hash value of the base kmer, i.e. fhval(kmer_0) (32 bits version)
+// forward-strand hash value of the base kmer, i.e. fhval(kmer_0) (32 bits version, ntHash 1)
 inline uint32_t NTF32(const char * kmerSeq, const unsigned k) {
     uint32_t hVal=0;
     for(unsigned i=0; i<k; i++) {
         hVal = rol1x32(hVal);
-        //hVal = swapbits017(hVal); // This is the ntHash2 novelty. 
+        //hVal = swapbits017(hVal); // This was the ntHash2 novelty. 
         //I'm not keeping it in this 32 bits version. So beware of 
         //periodicity with k>32. This is ntHash1-32bits
         hVal ^= seedTab32[(unsigned char)kmerSeq[i]];
@@ -211,7 +211,7 @@ inline uint64_t NTR64(const char * kmerSeq, const unsigned k) {
     return hVal;
 }
 
-// reverse-strand hash value of the base kmer, i.e. rhval(kmer_0) (32 bits version)
+// reverse-strand hash value of the base kmer, i.e. rhval(kmer_0) (32 bits version, ntHash 1)
 inline uint32_t NTR32(const char * kmerSeq, const unsigned k) {
     uint32_t hVal=0;
     for(unsigned i=0; i<k; i++) {
@@ -247,7 +247,7 @@ inline uint64_t NTR64(const uint64_t rhVal, const unsigned k, const unsigned cha
     return hVal;
 }
 
-// forward-strand ntHash for sliding k-mers (32 bits version)
+// forward-strand ntHash for sliding k-mers (32 bits version, ntHash 1)
 inline uint32_t NTF32(const uint32_t fhVal, const unsigned k, const unsigned char charOut, const unsigned char charIn) {
     uint32_t hVal = rol1x32(fhVal);
     //hVal = swapbits017(hVal); //ntHash1-32bits variant here (see the othe NTF32())
@@ -260,7 +260,7 @@ inline uint32_t NTF32(const uint32_t fhVal, const unsigned k, const unsigned cha
     return hVal;
 }
 
-// reverse-complement ntHash for sliding k-mers (32 bits version)
+// reverse-complement ntHash for sliding k-mers (32 bits version, ntHash 1)
 inline uint32_t NTR32(const uint32_t rhVal, const unsigned k, const unsigned char charOut, const unsigned char charIn) {
     //uint32_t lBits = seedTab32[charIn&cpOff] >> 17;
     //uint32_t rBits = seedTab32[charIn&cpOff] & 0x1FFFF;
