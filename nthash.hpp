@@ -126,6 +126,14 @@ inline uint32_t ror1x32(const uint32_t v) {
     return (v >> 1) | (v << 31);
 }
 
+// rol by k-1
+inline uint32_t rolck32(const uint32_t v, uint32_t k) {
+    if (k-1 > 32)
+        k%=32;
+    return (v << (k-1)) | (v >> (32-(k-1)));
+}
+
+
 // rotate 31-left bits of "v" to the left by "s" positions
 inline uint64_t rol31(const uint64_t v, unsigned s) {
     s%=31;
@@ -265,10 +273,9 @@ inline uint32_t NTR32(const uint32_t rhVal, const unsigned k, const unsigned cha
     //uint32_t lBits = seedTab32[charIn&cpOff] >> 17;
     //uint32_t rBits = seedTab32[charIn&cpOff] & 0x1FFFF;
     //uint32_t sIn = (rol15(lBits,k) << 17) | (rol17(rBits,k));
-    uint32_t sIn = (seedTab32[charIn&cpOff] << (k-1)) | (seedTab32[charIn&cpOff] >> (32-k-1));
-    uint32_t hVal = rhVal ^ sIn;
-    hVal ^= (seedTab32[charOut&cpOff] >> 1) | (seedTab32[charOut&cpOff] << (32-1));
-    hVal = ror1x32(hVal);
+    uint32_t sIn = rolck32(seedTab32[charIn&cpOff],k);
+    uint32_t hVal = ror1x32(rhVal) ^ sIn;
+    hVal ^= ror1x32(seedTab32[charOut&cpOff]);
     //hVal = swapbits1631(hVal); ntHash1-32bits variant here
     return hVal;
 }

@@ -131,9 +131,11 @@ void hashSeqr32(const string & seq, unsigned int length) {
 	uint32_t fhVal, rhVal, hVal;
 	hVal = NTC32(seq.c_str(), opt::kmerLen, fhVal, rhVal);
     std::cout << std::hex << "first nthash32 " << hVal << std::endl;
+    std::cout << std::hex << "first nthash32 fh " << fhVal << " rh " << rhVal << std::endl;
 	if (hVal)opt::nz++;
 	for (size_t i = 1; i < length - opt::kmerLen + 1; i++) {
 		hVal = NTC32(seq[i - 1], seq[i - 1 + opt::kmerLen], opt::kmerLen, fhVal, rhVal);
+        std::cout << std::hex << "next " << i  << " nthash32 fh " << fhVal << " rh " << rhVal << std::endl;
 		if (hVal)opt::nz++;
         if (i > length - opt::kmerLen - 15) // some debug
         {
