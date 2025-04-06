@@ -43,16 +43,20 @@ namespace opt {
 	unsigned kmerLen = 50;
 	uint64_t nz;
 	bool fastq = false;
+	int window_len = 100;
+	int smer_len = 31;
 }
 
 using namespace std;
 
-static const char shortopts[] = "k:";
+static const char shortopts[] = "k:w:s:";
 
 enum { OPT_HELP = 1, OPT_VERSION };
 
 static const struct option longopts[] = {
 	{ "kmer",	required_argument, NULL, 'k' },
+	{ "windowlen",	required_argument, NULL, 'w' },
+	{ "smerlen",	required_argument, NULL, 's' },
 	{ "help",	no_argument, NULL, OPT_HELP },
 	{ "version",	no_argument, NULL, OPT_VERSION },
 	{ NULL, 0, NULL, 0 }
@@ -60,7 +64,9 @@ static const struct option longopts[] = {
 
 static bool debug = true;
 
-static const string itm[] = { "nthash", "nthash32", "ntavx2", "ntavx232", "ntavx512", "ntavx532" };
+//static const string itm[] = { "nthash", "nthash32", "ntavx2", "ntavx232", "ntavx512", "ntavx532" };
+//static const string itm[] = { "nthash32", "ntavx232", "syncmer32" };
+static const string itm[] = { "nthash32", "nthash32", "syncmer32" };
 
 void getFtype(const char *fName) {
 	std::ifstream in(fName);
@@ -113,6 +119,7 @@ void hashSeqb(const string & seq, unsigned int length) {
 
 void hashSeqr(const string & seq, unsigned int length) {
 	uint64_t fhVal, rhVal, hVal;
+	std::cout << "hashSeqr " << "length " << length << std::endl;
 	hVal = NTC64(seq.c_str(), opt::kmerLen, fhVal, rhVal);
     if (debug) std::cout << std::hex << "first nthash " << hVal << std::endl;
 	if (hVal)opt::nz++;
@@ -143,6 +150,152 @@ void hashSeqr32(const string & seq, unsigned int length) {
         }
 	}
     if (debug) std::cout << std::hex << "final nthash32 " << hVal << std::endl;
+}
+
+void hashSeqr32buf(const string & seq, unsigned int length, uint32_t *buf) {
+	uint32_t fhVal, rhVal, hVal;
+	hVal = NTC32(seq.c_str(), opt::kmerLen, fhVal, rhVal);
+    //std::cout << std::hex << "first nthash32 " << hVal << std::endl;
+	buf[0] = hVal;
+    //std::cout << std::hex << "first nthash32 fh " << fhVal << " rh " << rhVal << std::endl;
+	for (size_t i = 1; i < length - opt::kmerLen + 1; i++) {
+		hVal = NTC32(seq[i - 1], seq[i - 1 + opt::kmerLen], opt::kmerLen, fhVal, rhVal);
+		buf[i] = hVal;
+	}
+    //if (debug) std::cout << std::hex << "final nthash32 " << hVal << std::endl;
+}
+
+int convertchar(int c) {
+	switch (c) {
+		case 'a': c = 0; break;
+		case 'c': c = 1; break;
+		case 'g': c = 2; break;
+		case 't': c = 3; break;
+		default:
+			//printf("??? c = %d\n", c);
+			c = 0;
+			break;
+	}
+	return c;
+}
+
+void hashSeqtmp32buf(const string & seq, unsigned int length, uint32_t *buf) {
+	uint32_t hVal = 0;
+	const char *p = seq.c_str();
+	for (unsigned int i=0; i<opt::kmerLen; i++) {
+		hVal <<= 2;
+		uint32_t c = convertchar(*p++);
+		hVal += c;
+	}
+	hVal &= (1<<opt::kmerLen*2)-1;
+	buf[0] = hVal;
+	for (size_t i = 1; i < length - opt::kmerLen + 1; i++) {
+		hVal <<= 2;
+		uint32_t c = convertchar(*p++);
+		hVal += c;
+		hVal &= (1<<opt::kmerLen*2)-1;
+		buf[i] = hVal;
+	}
+}
+
+void syncmer32(const string & seq, int length) {
+	opt::kmerLen = opt::smer_len;
+	int window_len = opt::window_len;
+	int smer_len = opt::smer_len;
+
+	//length -= smer_len-1;
+
+	uint32_t *buf;
+	int buf_len = (1 << 16);
+	int ws = window_len-smer_len+1;
+	buf = (uint32_t *)malloc((buf_len + window_len*2)*sizeof(uint32_t));
+	for (int i=0; i<window_len*2; i++) buf[(1<<16)+i] = 0;
+
+	uint32_t *left_hval = (uint32_t *)malloc((window_len-smer_len+1+1)*sizeof(uint32_t));
+	uint32_t *right_hval = (uint32_t *)malloc((window_len-smer_len+1+1)*sizeof(uint32_t));
+
+	int num_syncmers = 0;
+
+	int start = 0;
+	int pos = 0;
+	while (length > 0) {
+		int len = (length < buf_len) ? length : buf_len;
+		hashSeqr32buf(&seq[start], len+window_len*2, buf);
+		//hashSeqtmp32buf(&seq[start], len+window_len*2, buf);
+		uint32_t hval;
+
+		while (pos < len) {
+			//if (pos > 65530) {
+			//	printf("break\n");
+			//}
+#if 0			
+			printf("left hval ");
+			for (int i=0; i<ws; i++) {
+				printf("%d ", buf[pos+i]);
+			}
+			printf("\n");
+#endif
+			hval = buf[pos+ws-1];
+			left_hval[ws-1] = hval;
+			for (int i=ws-2; i>=0; i--) {
+				if (buf[pos+i] < hval) hval = buf[pos+i];
+				left_hval[i] = hval;
+			}
+#if 0
+			printf("left min ");
+			for (int i=0; i<ws; i++) {
+				printf("%d ", left_hval[i]);
+			}
+			printf("\n");
+
+			printf("right hval ");
+			for (int i=0; i<ws; i++) {
+				printf("%d ", buf[pos+ws+i]);
+			}
+			printf("\n");
+#endif
+			hval = buf[pos+ws];
+			right_hval[0] = hval;
+			for (int i=1; i<=ws; i++) {
+				if (buf[pos+ws+i] < hval) hval = buf[pos+ws+i];
+				right_hval[i] = hval;
+			}
+#if 0
+			printf("right min ");
+			for (int i=0; i<ws; i++) {
+				printf("%d ", right_hval[i]);
+			}
+			printf("\n");
+#endif
+			// check syncmer for the first k-mer
+			hval = left_hval[0];
+			if (buf[pos] == hval || buf[pos+ws-1] == hval) {
+				//printf("i=%d syncmer (%d) ", start + pos, smer_len);
+				//for (int k=0; k<window_len; k++) putchar(seq[start + pos + k]);
+				//printf("\n");
+				num_syncmers++;
+			}
+			// check syncmer for the other k-mers
+			for (int j=1; j<ws; j++) {
+				hval = (left_hval[j] < right_hval[j-1]) ? left_hval[j] : right_hval[j-1];
+				if (buf[pos+j] == hval || buf[pos+ws-1+j] == hval) {
+					//printf("i=%d syncmer (%d) ", start + pos + j, smer_len);
+					//for (int k=0; k<window_len; k++) putchar(seq[start + pos + j + k]);
+					//printf("\n");
+					num_syncmers++;
+				}
+	
+			}
+			pos += ws;
+		}
+		start += len;
+		length -= len;
+		pos -= len;
+	}
+
+	free(buf);  free(left_hval);  free(right_hval);
+
+	printf("w=%d s=%d #syncmers %d\n", window_len, smer_len, num_syncmers);
 }
 
 void hashSeqAvx2(const string & seq, unsigned int length) {
@@ -282,6 +435,7 @@ void hashSeqAvx2x32(const string & seq, unsigned int length) {
     if (debug) std::cout << std::hex << "final hash AVX2x32 " <<  hval0 << std::endl;
 }
 
+#ifdef AVX512
 void hashSeqAvx512(const string & seq, unsigned int length) {
 	const char* kmerSeq = seq.data();
 
@@ -423,13 +577,15 @@ void hashSeqAvx512x32(const string & seq, unsigned int length) {
    if (debug) std::cout << std::hex << "final hash AVX512x32 " <<  hval0 << std::endl;
 
 }
+#endif
 
 void nthashRT(const char *readName) {
 	getFtype(readName);
 	cerr << "CPU time (sec) for hash algorithms for ";
 	cerr << "kmer=" << opt::kmerLen << "\n";
 
-    unsigned int nb_itm = 6; // skips ntbase 
+    //unsigned int nb_itm = 6; // skips ntbase 
+    unsigned int nb_itm = 3; // skips ntbase 
     double times[10];
 	for (unsigned method = 0; method < nb_itm; method++) {
 		opt::nz = 0;
@@ -444,14 +600,20 @@ void nthashRT(const char *readName) {
 				hashSeqr32(line,length);
 			else if (itm[method] == "ntavx2")
 				hashSeqAvx2(line,length);
+#ifdef AVX512
 			else if (itm[method] == "ntavx512")
 				hashSeqAvx512(line,length);
+#endif
 			else if (itm[method] == "ntavx232")
 				hashSeqAvx2x32(line,length);
+#ifdef AVX512
 			else if (itm[method] == "ntavx532")
 				hashSeqAvx512x32(line,length);
+#endif
 			else if (itm[method] == "ntbase")
 				hashSeqb(line,length);
+			else if (itm[method] == "syncmer32")
+				syncmer32(line,length);
 		}
         times[method] = (double)(clock() - sTime) / CLOCKS_PER_SEC;
 		uFile.close();
@@ -476,6 +638,12 @@ int main(int argc, char** argv) {
 		case 'k':
 			arg >> opt::kmerLen;
 			//init_kmod(opt::kmerLen);
+			break;
+		case 'w':
+			arg >> opt::window_len;
+			break;
+		case 's':
+			arg >> opt::smer_len;
 			break;
 		case OPT_HELP:
 			std::cerr << USAGE_MESSAGE;

@@ -951,6 +951,7 @@ inline __m256i _mm256_NTC_epu32(const char * kmerOut, const char * kmerIn, const
 	return _hVal;
 }
 
+#ifdef AVX512
 // encode complement of "k" modulo 31 and 33 into lo/hi parts of the 64 bits
 inline __m512i _mm512_kmod3133_epu64(const uint64_t k) {
 	return _mm512_packus_epi32(
@@ -1752,5 +1753,6 @@ inline __m512i _mm512_NTC_epu32(const char * kmerOut, const char * kmerIn, const
 
 	return _hVal;
 }
+#endif
 
 #endif
