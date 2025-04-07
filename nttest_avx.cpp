@@ -23,6 +23,7 @@ Author:
 #include <vector>
 #include <algorithm>
 #include <cstdint>
+#include <cstring>
 
 #include <getopt.h>
 #include "nthash_avx.hpp"
@@ -64,8 +65,8 @@ static const struct option longopts[] = {
 static bool debug = true;
 
 //static const string itm[] = { "nthash", "nthash32", "ntavx2", "ntavx232", "ntavx512", "ntavx532" };
-static const string itm[] = { "nthash32", "ntavx232", "syncmer32" };
-//static const string itm[] = { "nthash32", "nthash32", "syncmer32" };
+//static const string itm[] = { "nthash32", "ntavx232", "syncmer32" };
+static const string itm[] = { "nthash", "ntavx2", "syncmer64" };
 
 void getFtype(const char *fName) {
 	std::ifstream in(fName);
@@ -164,6 +165,64 @@ void hashSeqr32buf(const string & seq, unsigned int length, uint32_t *buf) {
     //if (debug) std::cout << std::hex << "final nthash32 " << hVal << std::endl;
 }
 
+void hashSeqr64buf(const string & seq, unsigned int length, uint64_t *buf) {
+	uint64_t fhVal, rhVal, hVal;
+	hVal = NTC64(seq.c_str(), opt::kmerLen, fhVal, rhVal);
+    //std::cout << std::hex << "first nthash32 " << hVal << std::endl;
+	buf[0] = hVal;
+    //std::cout << std::hex << "first nthash32 fh " << fhVal << " rh " << rhVal << std::endl;
+	for (size_t i = 1; i < length - opt::kmerLen + 1; i++) {
+		hVal = NTC64(seq[i - 1], seq[i - 1 + opt::kmerLen], opt::kmerLen, fhVal, rhVal);
+		buf[i] = hVal;
+	}
+    //if (debug) std::cout << std::hex << "final nthash32 " << hVal << std::endl;
+}
+
+void hashSeqAvx2buf(const string & seq, unsigned int length, uint64_t *buf) {
+	const char* kmerSeq = seq.data();
+
+	__m256i _k = _mm256_kmod3133_epu64(opt::kmerLen);
+
+	__m256i _fhVal, _rhVal, _hVal;
+
+	_hVal = _mm256_NTC_epu64(kmerSeq, opt::kmerLen, _k, _fhVal, _rhVal);
+
+   uint64_t hval0 = _mm256_extract_epi64(_hVal, 0);
+   if (debug) std::cout << std::hex<< "first hash AVX2 " <<  hval0 << std::endl;
+
+	kmerSeq += 3;
+	std::memcpy(buf, &_hVal, sizeof _hVal);
+
+	size_t sentinel = length - opt::kmerLen + 1;
+
+	for (size_t i = 4; i < sentinel; i += 4, kmerSeq += 4) {
+		_hVal = _mm256_NTC_epu64(kmerSeq, kmerSeq + opt::kmerLen, _k, _fhVal, _rhVal);
+		std::memcpy(buf+i, &_hVal, sizeof _hVal);
+    }
+}
+
+
+void hashSeqAvx2x32buf(const string & seq, unsigned int length, uint32_t *buf) {
+	const char* kmerSeq = seq.data();
+
+	__m256i _k = _mm256_kmod31_epu32(opt::kmerLen);
+
+	__m256i _fhVal, _rhVal, _hVal;
+
+	_hVal = _mm256_NTC_epu32(kmerSeq, opt::kmerLen, _k, _fhVal, _rhVal);
+        
+	kmerSeq += 7;
+	std::memcpy(buf, &_hVal, sizeof _hVal);
+
+	size_t sentinel = length - opt::kmerLen + 1;
+
+	for (size_t i = 8; i < sentinel; i += 8, kmerSeq += 8) {
+		_hVal = _mm256_NTC_epu32(kmerSeq, kmerSeq + opt::kmerLen, _k, _fhVal, _rhVal);
+		std::memcpy(buf+i, &_hVal, sizeof _hVal);
+	}
+
+}
+
 int convertchar(int c) {
 	switch (c) {
 		case 'a': c = 0; break;
@@ -220,15 +279,15 @@ void syncmer32(const string & seq, int length) {
 	int pos = 0;
 	while (length > 0) {
 		int len = (length < buf_len) ? length : buf_len;
-		hashSeqr32buf(&seq[start], len+window_len*2, buf);
-		//hashSeqtmp32buf(&seq[start], len+window_len*2, buf);
+		//hashSeqr32buf(&seq[start], len+window_len*2, buf);
+		hashSeqAvx2x32buf(&seq[start], len+window_len*2, buf);
 		uint32_t hval;
 
 		while (pos < len) {
 			//if (pos > 65530) {
 			//	printf("break\n");
 			//}
-#if 0			
+#if 1
 			printf("left hval ");
 			for (int i=0; i<ws; i++) {
 				printf("%d ", buf[pos+i]);
@@ -241,7 +300,7 @@ void syncmer32(const string & seq, int length) {
 				if (buf[pos+i] < hval) hval = buf[pos+i];
 				left_hval[i] = hval;
 			}
-#if 0
+#if 1
 			printf("left min ");
 			for (int i=0; i<ws; i++) {
 				printf("%d ", left_hval[i]);
@@ -260,7 +319,7 @@ void syncmer32(const string & seq, int length) {
 				if (buf[pos+ws+i] < hval) hval = buf[pos+ws+i];
 				right_hval[i] = hval;
 			}
-#if 0
+#if 1
 			printf("right min ");
 			for (int i=0; i<ws; i++) {
 				printf("%d ", right_hval[i]);
@@ -270,18 +329,18 @@ void syncmer32(const string & seq, int length) {
 			// check syncmer for the first k-mer
 			hval = left_hval[0];
 			if (buf[pos] == hval || buf[pos+ws-1] == hval) {
-				//printf("i=%d syncmer (%d) ", start + pos, smer_len);
-				//for (int k=0; k<window_len; k++) putchar(seq[start + pos + k]);
-				//printf("\n");
+				printf("i=%d syncmer (%d) ", start + pos, smer_len);
+				for (int k=0; k<window_len; k++) putchar(seq[start + pos + k]);
+				printf("\n");
 				num_syncmers++;
 			}
 			// check syncmer for the other k-mers
 			for (int j=1; j<ws; j++) {
 				hval = (left_hval[j] < right_hval[j-1]) ? left_hval[j] : right_hval[j-1];
 				if (buf[pos+j] == hval || buf[pos+ws-1+j] == hval) {
-					//printf("i=%d syncmer (%d) ", start + pos + j, smer_len);
-					//for (int k=0; k<window_len; k++) putchar(seq[start + pos + j + k]);
-					//printf("\n");
+					printf("i=%d syncmer (%d) ", start + pos + j, smer_len);
+					for (int k=0; k<window_len; k++) putchar(seq[start + pos + j + k]);
+					printf("\n");
 					num_syncmers++;
 				}
 	
@@ -299,6 +358,108 @@ void syncmer32(const string & seq, int length) {
 }
 #undef BUFW
 
+void syncmer64(const string & seq, int length) {
+#define BUFW 26
+	opt::kmerLen = opt::smer_len;
+	int window_len = opt::window_len;
+	int smer_len = opt::smer_len;
+	
+	//length -= smer_len-1;
+	
+	uint64_t *buf;
+	int buf_len = (1 << BUFW);
+	int ws = window_len-smer_len+1;
+	buf = (uint64_t *)malloc((buf_len + window_len*2)*sizeof(uint64_t));
+	for (int i=0; i<window_len*2; i++) buf[(1<<BUFW)+i] = 0;
+	
+	uint64_t *left_hval = (uint64_t *)malloc((window_len-smer_len+1+1)*sizeof(uint64_t));
+	uint64_t *right_hval = (uint64_t *)malloc((window_len-smer_len+1+1)*sizeof(uint64_t));
+	
+	int num_syncmers = 0;
+	
+	int start = 0;
+	int pos = 0;
+	while (length > 0) {
+		int len = (length < buf_len) ? length : buf_len;
+		//hashSeqr64buf(&seq[start], len+window_len*2, buf);
+		hashSeqAvx2buf(&seq[start], len+window_len*2, buf);
+		uint64_t hval;
+	
+		while (pos < len) {
+			//if (pos > 65530) {
+			//	printf("break\n");
+			//}
+#if 0
+			printf("left hval ");
+			for (int i=0; i<ws; i++) {
+				printf("%ld ", buf[pos+i]);
+			}
+			printf("\n");
+#endif
+			hval = buf[pos+ws-1];
+			left_hval[ws-1] = hval;
+			for (int i=ws-2; i>=0; i--) {
+				if (buf[pos+i] < hval) hval = buf[pos+i];
+				left_hval[i] = hval;
+			}
+#if 0
+			printf("left min ");
+			for (int i=0; i<ws; i++) {
+				printf("%ld ", left_hval[i]);
+			}
+			printf("\n");
+	
+			printf("right hval ");
+			for (int i=0; i<ws; i++) {
+				printf("%ld ", buf[pos+ws+i]);
+			}
+			printf("\n");
+#endif
+			hval = buf[pos+ws];
+			right_hval[0] = hval;
+			for (int i=1; i<=ws; i++) {
+				if (buf[pos+ws+i] < hval) hval = buf[pos+ws+i];
+				right_hval[i] = hval;
+			}
+#if 0
+			printf("right min ");
+			for (int i=0; i<ws; i++) {
+				printf("%ld ", right_hval[i]);
+			}
+			printf("\n");
+#endif
+			// check syncmer for the first k-mer
+			hval = left_hval[0];
+			if (buf[pos] == hval || buf[pos+ws-1] == hval) {
+				printf("i=%d syncmer (%d) ", start + pos, smer_len);
+				for (int k=0; k<window_len; k++) putchar(seq[start + pos + k]);
+				printf("\n");
+				num_syncmers++;
+			}
+			// check syncmer for the other k-mers
+			for (int j=1; j<ws; j++) {
+				hval = (left_hval[j] < right_hval[j-1]) ? left_hval[j] : right_hval[j-1];
+				if (buf[pos+j] == hval || buf[pos+ws-1+j] == hval) {
+					printf("i=%d syncmer (%d) ", start + pos + j, smer_len);
+					for (int k=0; k<window_len; k++) putchar(seq[start + pos + j + k]);
+					printf("\n");
+					num_syncmers++;
+				}
+	
+			}
+			pos += ws;
+		}
+		start += len;
+		length -= len;
+		pos -= len;
+	}
+	
+	free(buf);  free(left_hval);  free(right_hval);
+	
+	printf("w=%d s=%d #syncmers %d\n", window_len, smer_len, num_syncmers);
+}
+#undef BUFW
+	
 void hashSeqAvx2(const string & seq, unsigned int length) {
 	const char* kmerSeq = seq.data();
 
