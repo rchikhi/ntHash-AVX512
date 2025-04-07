@@ -22,6 +22,25 @@ Author:
 #include "immintrin.h"
 #include "nthash.hpp"
 
+void print_m256i(__m256i vx)
+{
+  int x[8];
+  memcpy (x, &vx, sizeof vx);
+  for (int i=0; i<8; i++) {
+    printf("%x ", x[i]);
+  }  
+}
+
+void print_m256d(__m256i vx)
+{
+  long x[4];
+  memcpy (x, &vx, sizeof vx);
+  for (int i=0; i<4; i++) {
+    printf("%lx ", x[i]);
+  }  
+}
+
+
 // Shift vector imm bytes left across the lanes while shifting in zeroes
 template <int imm>
 __m256i _mm256_shift_left_si256(__m256i a) {
@@ -257,6 +276,8 @@ inline __m256i _mm256_NTR_epu64(const char * kmerSeq, const unsigned k, const __
 inline __m256i _mm256_NTC_epu64(const char * kmerSeq, const unsigned k, const __m256i _k, __m256i& _fhVal, __m256i& _rhVal) {
 	_fhVal = _mm256_NTF_epu64(kmerSeq, k);
 	_rhVal = _mm256_NTR_epu64(kmerSeq, k, _k);
+	//printf("fhval ");	print_m256d(_fhVal);
+	//printf("rhval ");	print_m256d(_rhVal);
 
 	const __m256i _mask = _mm256_set1_epi64x(0x8000000000000000ll);
 
@@ -606,12 +627,15 @@ inline __m256i _mm256_LKR_epu32(const char * kmerSeq) {
 // forward-strand hash value of the base kmer, i.e. fhval(kmer_0)
 inline __m256i _mm256_NTF_epu32(const char * kmerSeq, const unsigned k) {
 	__m256i _hVal31 = _mm256_setzero_si256();
+	//printf("i=%d _hVal31 ", 0);	print_m256i(_hVal31);
 
 	for (unsigned i = 0; i < k; i++)
 	{
 		_hVal31 = _mm256_rori31_epu32<30>(_hVal31);
+		//printf("i=%d _hVal31 ", i);	print_m256i(_hVal31);
 
 		__m256i _kmer31 = _mm256_LKF_epu32(kmerSeq + i);
+		//printf(" _kmer31 ");	print_m256i(_kmer31);
 
 		_hVal31 = _mm256_xor_si256(
 			_hVal31,
@@ -729,6 +753,8 @@ inline __m256i _mm256_NTR_epu32_nthash1(const char * kmerSeq, const unsigned k, 
 inline __m256i _mm256_NTC_epu32(const char * kmerSeq, const unsigned k, const __m256i _k, __m256i& _fhVal, __m256i& _rhVal) {
 	_fhVal = _mm256_NTF_epu32(kmerSeq, k);
 	_rhVal = _mm256_NTR_epu32(kmerSeq, k, _k);
+	//printf("fhVal "); print_m256i(_fhVal);
+	//printf("rhVal "); print_m256i(_rhVal);
 
     // _mm256_blendv_epi8(a: __m256i, b: __m256i, mask: __m256i) -> __m256i: Blends packed 8-bit integers from a and b using mask.
 	__m256i _hVal = _mm256_blendv_epi8(

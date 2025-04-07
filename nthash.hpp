@@ -299,6 +299,7 @@ inline uint64_t NTC64(const char * kmerSeq, const unsigned k, uint64_t& fhVal, u
 inline uint32_t NTC32(const char * kmerSeq, const unsigned k, uint32_t& fhVal, uint32_t& rhVal) {
     fhVal = NTF32(kmerSeq, k);
     rhVal = NTR32(kmerSeq, k);
+    //printf("fhVal %x rhVal %x\n", fhVal, rhVal);
     return (rhVal<fhVal)? rhVal : fhVal;
 }
 
