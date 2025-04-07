@@ -14,7 +14,6 @@ Author:
 	Microsoft AI&R
 
 --*/
-
 #include <string>
 #include <iostream>
 #include <iomanip>
@@ -65,8 +64,8 @@ static const struct option longopts[] = {
 static bool debug = true;
 
 //static const string itm[] = { "nthash", "nthash32", "ntavx2", "ntavx232", "ntavx512", "ntavx532" };
-//static const string itm[] = { "nthash32", "ntavx232", "syncmer32" };
-static const string itm[] = { "nthash32", "nthash32", "syncmer32" };
+static const string itm[] = { "nthash32", "ntavx232", "syncmer32" };
+//static const string itm[] = { "nthash32", "nthash32", "syncmer32" };
 
 void getFtype(const char *fName) {
 	std::ifstream in(fName);
@@ -199,6 +198,7 @@ void hashSeqtmp32buf(const string & seq, unsigned int length, uint32_t *buf) {
 }
 
 void syncmer32(const string & seq, int length) {
+#define BUFW 26
 	opt::kmerLen = opt::smer_len;
 	int window_len = opt::window_len;
 	int smer_len = opt::smer_len;
@@ -206,10 +206,10 @@ void syncmer32(const string & seq, int length) {
 	//length -= smer_len-1;
 
 	uint32_t *buf;
-	int buf_len = (1 << 16);
+	int buf_len = (1 << BUFW);
 	int ws = window_len-smer_len+1;
 	buf = (uint32_t *)malloc((buf_len + window_len*2)*sizeof(uint32_t));
-	for (int i=0; i<window_len*2; i++) buf[(1<<16)+i] = 0;
+	for (int i=0; i<window_len*2; i++) buf[(1<<BUFW)+i] = 0;
 
 	uint32_t *left_hval = (uint32_t *)malloc((window_len-smer_len+1+1)*sizeof(uint32_t));
 	uint32_t *right_hval = (uint32_t *)malloc((window_len-smer_len+1+1)*sizeof(uint32_t));
@@ -297,6 +297,7 @@ void syncmer32(const string & seq, int length) {
 
 	printf("w=%d s=%d #syncmers %d\n", window_len, smer_len, num_syncmers);
 }
+#undef BUFW
 
 void hashSeqAvx2(const string & seq, unsigned int length) {
 	const char* kmerSeq = seq.data();
