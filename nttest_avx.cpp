@@ -65,8 +65,11 @@ static const struct option longopts[] = {
 static bool debug = true;
 
 //static const string itm[] = { "nthash", "nthash32", "ntavx2", "ntavx232", "ntavx512", "ntavx532" };
-static const string itm[] = { "nthash32", "ntavx232", "syncmer32", "syncmer32avx" };
+//static const string itm[] = { "nthash32", "ntavx232", "syncmer32", "syncmer32avx" };
 //static const string itm[] = { "nthash", "ntavx2", "syncmer64", "syncmer64avx" };
+//unsigned int nb_itm = 6; // skips ntbase 
+unsigned int nb_itm = 3; // skips ntbase 
+static const string itm[] = { "nthash32", "ntavx232", "syncmer32avx"};
 
 void getFtype(const char *fName) {
 	std::ifstream in(fName);
@@ -275,6 +278,7 @@ void hashSeqAvx2x32buf(const string & seq, unsigned int length, uint32_t *buf) {
 	__m256i _fhVal, _rhVal, _hVal;
 
 	_hVal = _mm256_NTC_epu32(kmerSeq, opt::kmerLen, _k, _fhVal, _rhVal);
+	//printf("hval "); print_m256i(_hVal);
     uint32_t hval0 = _mm256_extract_epi32(_hVal, 0);
     if (debug) std::cout << std::hex << "first hash AVX2x32 " <<  hval0 << std::endl;
         
@@ -357,10 +361,10 @@ void syncmer32(const string & seq, int length, int avx) {
 			//if (pos > 65530) {
 			//	printf("break\n");
 			//}
-#if 0
+#if 1
 			printf("left hval ");
 			for (int i=0; i<ws; i++) {
-				printf("%d ", buf[pos+i]);
+				printf("%x ", buf[pos+i]);
 			}
 			printf("\n");
 #endif
@@ -370,16 +374,16 @@ void syncmer32(const string & seq, int length, int avx) {
 				if (buf[pos+i] < hval) hval = buf[pos+i];
 				left_hval[i] = hval;
 			}
-#if 0
+#if 1
 			printf("left min ");
 			for (int i=0; i<ws; i++) {
-				printf("%d ", left_hval[i]);
+				printf("%x ", left_hval[i]);
 			}
 			printf("\n");
 
 			printf("right hval ");
 			for (int i=0; i<ws; i++) {
-				printf("%d ", buf[pos+ws+i]);
+				printf("%x ", buf[pos+ws+i]);
 			}
 			printf("\n");
 #endif
@@ -389,28 +393,28 @@ void syncmer32(const string & seq, int length, int avx) {
 				if (buf[pos+ws+i] < hval) hval = buf[pos+ws+i];
 				right_hval[i] = hval;
 			}
-#if 0
+#if 1
 			printf("right min ");
 			for (int i=0; i<ws; i++) {
-				printf("%d ", right_hval[i]);
+				printf("%x ", right_hval[i]);
 			}
 			printf("\n");
 #endif
 			// check syncmer for the first k-mer
 			hval = left_hval[0];
 			if (buf[pos] == hval || buf[pos+ws-1] == hval) {
-				//printf("i=%d syncmer (%d) ", start + pos, smer_len);
-				//for (int k=0; k<window_len; k++) putchar(seq[start + pos + k]);
-				//printf("\n");
+				printf("i=%d syncmer (%d) ", start + pos, smer_len);
+				for (int k=0; k<window_len; k++) putchar(seq[start + pos + k]);
+				printf("\n");
 				num_syncmers++;
 			}
 			// check syncmer for the other k-mers
 			for (int j=1; j<ws; j++) {
 				hval = (left_hval[j] < right_hval[j-1]) ? left_hval[j] : right_hval[j-1];
 				if (buf[pos+j] == hval || buf[pos+ws-1+j] == hval) {
-					//printf("i=%d syncmer (%d) ", start + pos + j, smer_len);
-					//for (int k=0; k<window_len; k++) putchar(seq[start + pos + j + k]);
-					//printf("\n");
+					printf("i=%d syncmer (%d) ", start + pos + j, smer_len);
+					for (int k=0; k<window_len; k++) putchar(seq[start + pos + j + k]);
+					printf("\n");
 					num_syncmers++;
 				}
 	
@@ -462,7 +466,7 @@ void syncmer64(const string & seq, int length, int avx) {
 			//if (pos > 65530) {
 			//	printf("break\n");
 			//}
-#if 0
+#if 1
 			printf("left hval ");
 			for (int i=0; i<ws; i++) {
 				printf("%ld ", buf[pos+i]);
@@ -475,7 +479,7 @@ void syncmer64(const string & seq, int length, int avx) {
 				if (buf[pos+i] < hval) hval = buf[pos+i];
 				left_hval[i] = hval;
 			}
-#if 0
+#if 1
 			printf("left min ");
 			for (int i=0; i<ws; i++) {
 				printf("%ld ", left_hval[i]);
@@ -494,7 +498,7 @@ void syncmer64(const string & seq, int length, int avx) {
 				if (buf[pos+ws+i] < hval) hval = buf[pos+ws+i];
 				right_hval[i] = hval;
 			}
-#if 0
+#if 1
 			printf("right min ");
 			for (int i=0; i<ws; i++) {
 				printf("%ld ", right_hval[i]);
@@ -756,8 +760,6 @@ void nthashRT(const char *readName) {
 	cerr << "CPU time (sec) for hash algorithms for ";
 	cerr << "kmer=" << opt::kmerLen << "\n";
 
-    //unsigned int nb_itm = 6; // skips ntbase 
-    unsigned int nb_itm = 4; // skips ntbase 
     double times[10];
 	for (unsigned method = 0; method < nb_itm; method++) {
 		opt::nz = 0;

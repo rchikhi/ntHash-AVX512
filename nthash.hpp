@@ -203,7 +203,7 @@ inline uint32_t NTF32(const char * kmerSeq, const unsigned k) {
         //periodicity with k>32. This is ntHash1-32bits
         hVal ^= seedTab32[(unsigned char)kmerSeq[i]];
 
-        //std::cout << std::hex << i << " first nthash32 " << hVal << std::endl;
+        std::cout << std::hex << i << " first nthash32 " << hVal << std::endl;
     }
     return hVal;
 }
@@ -300,6 +300,7 @@ inline uint32_t NTC32(const char * kmerSeq, const unsigned k, uint32_t& fhVal, u
     fhVal = NTF32(kmerSeq, k);
     rhVal = NTR32(kmerSeq, k);
     //printf("fhVal %x rhVal %x\n", fhVal, rhVal);
+    //return fhVal;
     return (rhVal<fhVal)? rhVal : fhVal;
 }
 
@@ -314,6 +315,8 @@ inline uint64_t NTC64(const unsigned char charOut, const unsigned char charIn, c
 inline uint32_t NTC32(const unsigned char charOut, const unsigned char charIn, const unsigned k, uint32_t& fhVal, uint32_t& rhVal) {
     fhVal = NTF32(fhVal, k, charOut, charIn);
     rhVal = NTR32(rhVal, k, charOut, charIn);
+    //printf("fhVal %x rhVal %x\n", fhVal, rhVal);
+    //return fhVal;
     return (rhVal<fhVal)? rhVal : fhVal;
 }
 
