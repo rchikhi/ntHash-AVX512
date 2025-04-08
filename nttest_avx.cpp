@@ -141,7 +141,7 @@ void hashSeqr32(const string & seq, unsigned int length) {
 	uint32_t fhVal, rhVal, hVal;
 	//hVal = NTC32(seq.c_str(), opt::kmerLen, fhVal, rhVal);
 	hVal = NTC31(seq.c_str(), opt::kmerLen, fhVal, rhVal);
-    //std::cout << std::hex << "first nthash32 " << hVal << std::endl;
+    std::cout << std::hex << "first nthash32 " << hVal << std::endl;
     //std::cout << std::hex << "first nthash32 fh " << fhVal << " rh " << rhVal << std::endl;
 	if (hVal)opt::nz++;
 	for (size_t i = 1; i < length - opt::kmerLen + 1; i++) {
@@ -260,8 +260,8 @@ void hashSeqAvx2buf(const string & seq, unsigned int length, uint64_t *buf) {
 
 	_hVal = _mm256_NTC_epu64(kmerSeq, opt::kmerLen, _k, _fhVal, _rhVal);
    //printf("hVal "); print_m256d(_hVal);
-   uint64_t hval0 = _mm256_extract_epi64(_hVal, 0);
-   if (debug) std::cout << std::hex<< "first hash AVX2buf " <<  hval0 << std::endl;
+   //uint64_t hval0 = _mm256_extract_epi64(_hVal, 0);
+   //if (debug) std::cout << std::hex<< "first hash AVX2buf " <<  hval0 << std::endl;
 
 	kmerSeq += 3;
 	std::memcpy(buf, &_hVal, sizeof _hVal);
@@ -409,18 +409,18 @@ void syncmer32(const string & seq, int length, int avx) {
 			// check syncmer for the first k-mer
 			hval = left_hval[0];
 			if (buf[pos] == hval || buf[pos+ws-1] == hval) {
-				printf("i=%d syncmer (%d) ", start + pos, smer_len);
-				for (int k=0; k<window_len; k++) putchar(seq[start + pos + k]);
-				printf("\n");
+				//printf("i=%d syncmer (%d) ", start + pos, smer_len);
+				//for (int k=0; k<window_len; k++) putchar(seq[start + pos + k]);
+				//printf("\n");
 				num_syncmers++;
 			}
 			// check syncmer for the other k-mers
 			for (int j=1; j<ws; j++) {
 				hval = (left_hval[j] < right_hval[j-1]) ? left_hval[j] : right_hval[j-1];
 				if (buf[pos+j] == hval || buf[pos+ws-1+j] == hval) {
-					printf("i=%d syncmer (%d) ", start + pos + j, smer_len);
-					for (int k=0; k<window_len; k++) putchar(seq[start + pos + j + k]);
-					printf("\n");
+					//printf("i=%d syncmer (%d) ", start + pos + j, smer_len);
+					//for (int k=0; k<window_len; k++) putchar(seq[start + pos + j + k]);
+					//printf("\n");
 					num_syncmers++;
 				}
 	
