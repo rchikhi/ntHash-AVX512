@@ -124,7 +124,7 @@ void hashSeqr(const string & seq, unsigned int length) {
 	uint64_t fhVal, rhVal, hVal;
 	std::cout << "hashSeqr " << "length " << length << std::endl;
 	hVal = NTC64(seq.c_str(), opt::kmerLen, fhVal, rhVal);
-    if (debug) std::cout << std::hex << "first nthash " << hVal << std::endl;
+    //if (debug) std::cout << std::hex << "first nthash " << hVal << std::endl;
 	if (hVal)opt::nz++;
 	for (size_t i = 1; i < length - opt::kmerLen + 1; i++) {
 		hVal = NTC64(seq[i - 1], seq[i - 1 + opt::kmerLen], opt::kmerLen, fhVal, rhVal);
@@ -139,13 +139,16 @@ void hashSeqr(const string & seq, unsigned int length) {
 
 void hashSeqr32(const string & seq, unsigned int length) {
 	uint32_t fhVal, rhVal, hVal;
-	hVal = NTC32(seq.c_str(), opt::kmerLen, fhVal, rhVal);
-    std::cout << std::hex << "first nthash32 " << hVal << std::endl;
+	//hVal = NTC32(seq.c_str(), opt::kmerLen, fhVal, rhVal);
+	hVal = NTC31(seq.c_str(), opt::kmerLen, fhVal, rhVal);
+    //std::cout << std::hex << "first nthash32 " << hVal << std::endl;
     //std::cout << std::hex << "first nthash32 fh " << fhVal << " rh " << rhVal << std::endl;
 	if (hVal)opt::nz++;
 	for (size_t i = 1; i < length - opt::kmerLen + 1; i++) {
-		hVal = NTC32(seq[i - 1], seq[i - 1 + opt::kmerLen], opt::kmerLen, fhVal, rhVal);
+		//hVal = NTC32(seq[i - 1], seq[i - 1 + opt::kmerLen], opt::kmerLen, fhVal, rhVal);
+		hVal = NTC31(seq[i - 1], seq[i - 1 + opt::kmerLen], opt::kmerLen, fhVal, rhVal);
         //std::cout << std::hex << "next " << i  << " nthash32 fh " << fhVal << " rh " << rhVal << std::endl;
+        //std::cout << std::hex << "next " << seq[i - 1 + opt::kmerLen] << " i " << i  << " nthash32 " << hVal << std::endl;
 		if (hVal)opt::nz++;
         if (i > length - opt::kmerLen - 15) // some debug
         {
@@ -157,12 +160,14 @@ void hashSeqr32(const string & seq, unsigned int length) {
 
 void hashSeqr32buf(const string & seq, unsigned int length, uint32_t *buf) {
 	uint32_t fhVal, rhVal, hVal;
-	hVal = NTC32(seq.c_str(), opt::kmerLen, fhVal, rhVal);
+	//hVal = NTC32(seq.c_str(), opt::kmerLen, fhVal, rhVal);
+	hVal = NTC31(seq.c_str(), opt::kmerLen, fhVal, rhVal);
     //std::cout << std::hex << "first nthash32 " << hVal << std::endl;
 	buf[0] = hVal;
     //std::cout << std::hex << "first nthash32 fh " << fhVal << " rh " << rhVal << std::endl;
 	for (size_t i = 1; i < length - opt::kmerLen + 1; i++) {
-		hVal = NTC32(seq[i - 1], seq[i - 1 + opt::kmerLen], opt::kmerLen, fhVal, rhVal);
+		//hVal = NTC32(seq[i - 1], seq[i - 1 + opt::kmerLen], opt::kmerLen, fhVal, rhVal);
+		hVal = NTC31(seq[i - 1], seq[i - 1 + opt::kmerLen], opt::kmerLen, fhVal, rhVal);
 		buf[i] = hVal;
 	}
     //if (debug) std::cout << std::hex << "final nthash32 " << hVal << std::endl;
@@ -278,7 +283,7 @@ void hashSeqAvx2x32buf(const string & seq, unsigned int length, uint32_t *buf) {
 	__m256i _fhVal, _rhVal, _hVal;
 
 	_hVal = _mm256_NTC_epu32(kmerSeq, opt::kmerLen, _k, _fhVal, _rhVal);
-	//printf("hval "); print_m256i(_hVal);
+	//printf("hval 0 "); print_m256i(_hVal);
     uint32_t hval0 = _mm256_extract_epi32(_hVal, 0);
     if (debug) std::cout << std::hex << "first hash AVX2x32 " <<  hval0 << std::endl;
         
@@ -289,6 +294,7 @@ void hashSeqAvx2x32buf(const string & seq, unsigned int length, uint32_t *buf) {
 
 	for (size_t i = 8; i < sentinel; i += 8, kmerSeq += 8) {
 		_hVal = _mm256_NTC_epu32(kmerSeq, kmerSeq + opt::kmerLen, _k, _fhVal, _rhVal);
+		//printf("hval %ld ", i); print_m256i(_hVal);
 		std::memcpy(buf+i, &_hVal, sizeof _hVal);
 	}
 
@@ -361,7 +367,7 @@ void syncmer32(const string & seq, int length, int avx) {
 			//if (pos > 65530) {
 			//	printf("break\n");
 			//}
-#if 1
+#if 0
 			printf("left hval ");
 			for (int i=0; i<ws; i++) {
 				printf("%x ", buf[pos+i]);
@@ -374,7 +380,7 @@ void syncmer32(const string & seq, int length, int avx) {
 				if (buf[pos+i] < hval) hval = buf[pos+i];
 				left_hval[i] = hval;
 			}
-#if 1
+#if 0
 			printf("left min ");
 			for (int i=0; i<ws; i++) {
 				printf("%x ", left_hval[i]);
@@ -393,7 +399,7 @@ void syncmer32(const string & seq, int length, int avx) {
 				if (buf[pos+ws+i] < hval) hval = buf[pos+ws+i];
 				right_hval[i] = hval;
 			}
-#if 1
+#if 0
 			printf("right min ");
 			for (int i=0; i<ws; i++) {
 				printf("%x ", right_hval[i]);
@@ -609,6 +615,8 @@ void hashSeqAvx2x32(const string & seq, unsigned int length) {
     else if ((length - opt::kmerLen) % 8 == 7)
         hval0 = _mm256_extract_epi32(_hVal, 7);
     if (debug) std::cout << std::hex << "final hash AVX2x32 " <<  hval0 << std::endl;
+
+	//printf("hVal "); print_m256i(_hVal);
 }
 
 #ifdef AVX512

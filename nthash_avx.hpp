@@ -753,13 +753,13 @@ inline __m256i _mm256_NTR_epu32_nthash1(const char * kmerSeq, const unsigned k, 
 
 // canonical ntHash
 inline __m256i _mm256_NTC_epu32(const char * kmerSeq, const unsigned k, const __m256i _k, __m256i& _fhVal, __m256i& _rhVal) {
-//	_fhVal = _mm256_NTF_epu32(kmerSeq, k);
-	_fhVal = _mm256_NTF_epu32_ntHash1(kmerSeq, k);
-//	_rhVal = _mm256_NTR_epu32(kmerSeq, k, _k);
-	_rhVal = _mm256_NTR_epu32_nthash1(kmerSeq, k, _k);
+	_fhVal = _mm256_NTF_epu32(kmerSeq, k);
+//	_fhVal = _mm256_NTF_epu32_ntHash1(kmerSeq, k);
+	_rhVal = _mm256_NTR_epu32(kmerSeq, k, _k);
+//	_rhVal = _mm256_NTR_epu32_nthash1(kmerSeq, k, _k);
 //	printf("fhVal "); print_m256i(_fhVal);
 //	printf("rhVal "); print_m256i(_rhVal);
-	//return _fhVal;
+	//return _rhVal;
 
     // _mm256_blendv_epi8(a: __m256i, b: __m256i, mask: __m256i) -> __m256i: Blends packed 8-bit integers from a and b using mask.
 	__m256i _hVal = _mm256_blendv_epi8(
@@ -971,8 +971,10 @@ inline __m256i _mm256_NTR_epu32(const __m256i _rhVal, const __m256i _k, const ch
 inline __m256i _mm256_NTC_epu32(const char * kmerOut, const char * kmerIn, const __m256i _k, __m256i& _fhVal, __m256i& _rhVal) {
 	_fhVal = _mm256_NTF_epu32(_fhVal, _k, kmerOut, kmerIn);
 	_rhVal = _mm256_NTR_epu32(_rhVal, _k, kmerOut, kmerIn);
+//	_fhVal = _mm256_NTF_epu32_nthash1(_fhVal, _k, kmerOut, kmerIn);
+//	_rhVal = _mm256_NTR_epu32_nthash1(_rhVal, _k, kmerOut, kmerIn);
 
-	//return _fhVal;
+	//return _rhVal;
 
 	__m256i _hVal = _mm256_blendv_epi8(
 		_fhVal,
