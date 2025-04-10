@@ -1,9 +1,10 @@
-bin_PROGRAMS = nttest nttest_avx
+bin_PROGRAMS = nttest nttest_avx nttest_avx_simple
 
 nttest_CPPFLAGS = -I$(top_srcdir)/lib -g -O0
 
 #nttest_avx_CPPFLAGS = --std=c++11 -march=sandybridge -mavx512f -mavx512bw -mavx512vl -I$(top_srcdir)/lib  -g -O3
 nttest_avx_CPPFLAGS = --std=c++11 -march=native -mavx2 -I$(top_srcdir)/lib  -g -O3
+nttest_avx_simple_CPPFLAGS = --std=c++11 -march=native -mavx2 -I$(top_srcdir)/lib  -g -O3
 
 nttest_SOURCES = \
 	lib/BloomFilter.hpp \
@@ -22,6 +23,11 @@ nttest_avx_SOURCES = \
 	nthash.hpp \
 	nthash_avx.hpp \
 	nttest_avx.cpp
+
+nttest_avx_simple_SOURCES = \
+	nthash_simple.hpp \
+	nthash_avx_simple.hpp \
+	nttest_avx_simple.cpp
 
 dist_doc_DATA = \
 	ChangeLog \
