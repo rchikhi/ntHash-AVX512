@@ -295,28 +295,8 @@ void hashSeqAvx2x32(const string & seq, unsigned int length) {
 
 	for (size_t i = 8; i < sentinel; i += 8, kmerSeq += 8) {
 		_hVal = _mm256_NTC_epu32(kmerSeq, kmerSeq + opt::kmerLen, _k, _fhVal, _rhVal);
-
-		__m256i _isZero = _mm256_cmpeq_epi32(
-			_hVal,
-			_zero);
-
-		_nz = _mm256_sub_epi32(
-			_nz,
-			_mm256_xor_si256(
-				_isZero,
-				_isZero));
 	}
-
-	opt::nz =
-		_mm256_extract_epi32(_nz, 0) +
-		_mm256_extract_epi32(_nz, 1) +
-		_mm256_extract_epi32(_nz, 2) +
-		_mm256_extract_epi32(_nz, 3) +
-		_mm256_extract_epi32(_nz, 4) +
-		_mm256_extract_epi32(_nz, 5) +
-		_mm256_extract_epi32(_nz, 6) +
-		_mm256_extract_epi32(_nz, 7);
-   
+  
     if ((length - opt::kmerLen) % 8 == 0)
         hval0 = _mm256_extract_epi32(_hVal, 0);
     else if ((length - opt::kmerLen) % 8 == 1)
@@ -348,9 +328,10 @@ void nthashRT(const char *readName) {
 		opt::nz = 0;
 		ifstream uFile(readName);
 		string line;
-		clock_t sTime = clock();
+		clock_t sTime = 0;
         unsigned int length;
 		while (getSeq(uFile, line, length)) {
+            sTime = clock();
             if (itm[method] == "nthash32")
 				hashSeqr32(line,length);
 			else if (itm[method] == "ntavx232")
@@ -359,8 +340,8 @@ void nthashRT(const char *readName) {
 				syncmer32(line,length, 0);
 			else if (itm[method] == "syncmer32avx")
 				syncmer32(line,length, 1);
+            times[method] += (double)(clock() - sTime) / CLOCKS_PER_SEC;
 		}
-        times[method] = (double)(clock() - sTime) / CLOCKS_PER_SEC;
 		uFile.close();
     }
 	for (unsigned method = 0; method < nb_itm; method++)

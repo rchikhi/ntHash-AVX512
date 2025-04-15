@@ -6,14 +6,6 @@ AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_SRCDIR([nttest.cpp])
 AC_CONFIG_HEADER([config.h])
 
-if test -z $CXXFLAGS; then
-    CXXFLAGS='-O3'
-fi
-
-if test -z $CCFLAGS; then
-    CCFLAGS='-O3'
-fi
-
 # Checks for programs.
 AC_PROG_AWK
 AC_PROG_CC
