@@ -69,7 +69,7 @@ static bool debug = true;
 //static const string itm[] = { "nthash", "ntavx2", "syncmer64", "syncmer64avx" };
 //unsigned int nb_itm = 6; // skips ntbase 
 unsigned int nb_itm = 4; // skips ntbase 
-static const string itm[] = { "nthash32", "ntavx232", "syncmer32", "syncmer32avx"};
+static const string itm[] = { "nthash32", "ntavx232", "ntavx232buf", "syncmer32", "syncmer32avx"};
 
 void getFtype(const char *fName) {
 	std::ifstream in(fName);
@@ -318,17 +318,23 @@ void nthashRT(const char *readName) {
 		string line;
 		clock_t sTime = 0;
         unsigned int length;
+        // init buf
 		while (getSeq(uFile, line, length)) {
+	        uint32_t * buf = (uint32_t *)malloc(length*sizeof(uint32_t));
+    	    for (int i=0; i<(int)length; i++) buf[i] = 0;
             sTime = clock();
             if (itm[method] == "nthash32")
 				hashSeqr32(line,length);
 			else if (itm[method] == "ntavx232")
 				hashSeqAvx2x32(line,length);
+			else if (itm[method] == "ntavx232buf")
+				hashSeqAvx2x32buf(line,length,buf);
 			else if (itm[method] == "syncmer32")
 				syncmer32(line,length, 0);
 			else if (itm[method] == "syncmer32avx")
 				syncmer32(line,length, 1);
             times[method] += (double)(clock() - sTime) / CLOCKS_PER_SEC;
+            free(buf);
 		}
 		uFile.close();
     }
