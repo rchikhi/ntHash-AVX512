@@ -266,8 +266,6 @@ void syncmer32(const string & seq, int length, int avx) {
 void hashSeqAvx2x32(const string & seq, unsigned int length) {
 	const char* kmerSeq = seq.data();
 
-	__m256i _nz = _mm256_setzero_si256();
-	__m256i _zero = _mm256_setzero_si256();
 
 	__m256i _k = _mm256_kmod31_epu32(opt::kmerLen);
 
@@ -278,23 +276,13 @@ void hashSeqAvx2x32(const string & seq, unsigned int length) {
     uint32_t hval0;
     hval0 = _mm256_extract_epi32(_hVal, 0);
     if (debug) std::cout << std::hex << "first hash AVX2x32 " <<  hval0 << std::endl;
-
-	__m256i _isZero = _mm256_cmpeq_epi32(
-		_hVal,
-		_zero);
-
-	_nz = _mm256_sub_epi32(
-		_nz,
-		_mm256_xor_si256(
-			_isZero,
-			_isZero));
-
 	kmerSeq += 7;
 
 	size_t sentinel = length - opt::kmerLen + 1;
 
 	for (size_t i = 8; i < sentinel; i += 8, kmerSeq += 8) {
 		_hVal = _mm256_NTC_epu32(kmerSeq, kmerSeq + opt::kmerLen, _k, _fhVal, _rhVal);
+        asm volatile("" : : "g"(_hVal) : "memory");  // ensures _hVal is not optimized out
 	}
   
     if ((length - opt::kmerLen) % 8 == 0)
