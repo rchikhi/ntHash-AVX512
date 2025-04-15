@@ -68,7 +68,7 @@ static bool debug = true;
 //static const string itm[] = { "nthash32", "ntavx232", "syncmer32", "syncmer32avx" };
 //static const string itm[] = { "nthash", "ntavx2", "syncmer64", "syncmer64avx" };
 //unsigned int nb_itm = 6; // skips ntbase 
-unsigned int nb_itm = 4; // skips ntbase 
+unsigned int nb_itm = 5; // skips ntbase 
 static const string itm[] = { "nthash32", "ntavx232", "ntavx232buf", "syncmer32", "syncmer32avx"};
 
 void getFtype(const char *fName) {
